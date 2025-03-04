@@ -10,35 +10,84 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.function.Predicate;
 
+/**
+ * This simple implementation of the {@link TleFilter} interface allows for the filtering of TLE data based on specific
+ * targeted NORAD Identifiers within the data.  Labels/comments are excluded, and only rows that contain the specified
+ * identifiers are included in the resulting output.
+ */
 public class SimpleTleFilter implements TleFilter {
 
-    private final Predicate<String> filterCondition;
+    /**
+     * The {@link Set} of NORAD Identifiers to target from the incoming stream for our output.
+     */
+    private final Set<String> targetNoradIds;
 
+    /**
+     * Lombok generated builder based on this private constructor.
+     *
+     * @param targetNoradIds The NORAD Identifiers you want to include in the output
+     */
     @Builder
     private SimpleTleFilter(Set<String> targetNoradIds) {
-        filterCondition = TleFilterPredicate.builder()
-                .targetIds(targetNoradIds)
-                .build();
+        this.targetNoradIds = targetNoradIds;
     }
 
+    /**
+     * Implementation of the filter method that will only include TLE data that specifies a specific set of NORAD
+     * identifiers.
+     *
+     * @param input  The incoming TLE data
+     * @param output The TLE data to include in the output of the filter
+     * @throws IOException If there is an issue processing the stream of TLE data
+     */
     @Override
-    public void filter(InputStream tleStream, OutputStream outputStream) throws IOException {
-        try (
-                // BufferedReader for handling the reading of incoming bytes
-                BufferedReader reader = new BufferedReader(new InputStreamReader(tleStream));
-                // BufferedWriter for handling the writing of matching output bytes
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (filterCondition.test(line)) {
-                    writer.write(line);
-                    writer.newLine();  // Ensure line separation
+    public void filter(InputStream input, OutputStream output) throws IOException {
+        // Handle the buffered reader/writer in the try block to ensure they're closed appropriately
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8))) {
+            // Optional title line
+            String title = null;
+            // Required Two-Line Element lines :)
+            String line1;
+            String line2;
+            // Read the buffered input one TLE entry at a time (2-3 lines)
+            while ((line1 = reader.readLine()) != null) {
+                // If line1 is not a TLE line (i.e., doesn't start with "1 "), treat it as a title
+                if (!line1.startsWith("1 ")) {
+                    title = line1;
+                    line1 = reader.readLine(); // The actual first TLE line
                 }
+                // The second TLE line
+                line2 = reader.readLine();
+                // Ensure both lines are valid
+                if (line1 == null || line2 == null || !line1.startsWith("1 ") || !line2.startsWith("2 ")) {
+                    throw new IOException("TLE data was malformed");
+                }
+                // Extract the NORAD ID from the second TLE line (bypass the need for the classification marking handling)
+                String noradId = extractNoradId(line2);
+                // If NORAD ID matches, write it to the output
+                if (targetNoradIds.contains(noradId)) {
+                    if (title != null) {
+                        writer.write(title);
+                        writer.newLine();
+                    }
+                    writer.write(line1);
+                    writer.newLine();
+                    writer.write(line2);
+                    writer.newLine();
+                }
+                title = null; // Reset title for the next entry
             }
-            writer.flush(); // Ensure data is fully written to the output
+
+            writer.flush(); // Ensure everything is written to the output
         }
+    }
+
+    private String extractNoradId(String line2) {
+        String[] parts = line2.split("\\s+", 3);
+        return (parts.length > 1) ? parts[1] : "";
     }
 }
