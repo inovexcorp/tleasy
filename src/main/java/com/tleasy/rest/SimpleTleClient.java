@@ -33,6 +33,14 @@ public class SimpleTleClient implements TleClient {
         this.httpClient = createSecureHttpClient(keystoreFile, keystorePassword, truststoreFile, truststorePassword);
     }
 
+    /**
+     * Simple implementation that leverages the {@link HttpClient} API and {@link SSLContext} configurations to hook
+     * into a remote server and fetch an {@link InputStream} of TLE data.
+     *
+     * @return The {@link InputStream} of TLE data
+     * @throws IOException          If there is an issue connecting to the remote server and fetching the data
+     * @throws InterruptedException If there is an issue locally while making the connection to the remote server
+     */
     @Override
     public InputStream fetchTle() throws IOException, InterruptedException {
         // Build the request we'll make to the TLE data endpoint
