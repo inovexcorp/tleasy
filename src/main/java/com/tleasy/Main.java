@@ -28,9 +28,5 @@ public class Main {
             filter.filter(tleData, output);
             System.out.println(output.toString(Charset.defaultCharset()));
         }
-
-
     }
-
-
 }
