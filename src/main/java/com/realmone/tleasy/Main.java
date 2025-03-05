@@ -1,10 +1,12 @@
 package com.realmone.tleasy;
 
 import com.realmone.tleasy.rest.SimpleTleClient;
-import com.tleasy.TleFilter;
-import com.tleasy.tle.SimpleTleFilter;
+import com.realmone.tleasy.tle.SimpleTleFilter;
 
-import java.awt.FlowLayout;
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,17 +16,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 public class Main extends JFrame {
 
@@ -67,9 +58,17 @@ public class Main extends JFrame {
 
         // Validation handler on ID Field to control disabling button
         idField.getDocument().addDocumentListener(new DocumentListener() {
-            public void changedUpdate(DocumentEvent e) { checkID(); }
-            public void removeUpdate(DocumentEvent e) { checkID(); }
-            public void insertUpdate(DocumentEvent e) { checkID(); }
+            public void changedUpdate(DocumentEvent e) {
+                checkID();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                checkID();
+            }
+
+            public void insertUpdate(DocumentEvent e) {
+                checkID();
+            }
         });
 
         // Button click handler for starting download
@@ -104,7 +103,7 @@ public class Main extends JFrame {
                         .targetNoradIds(getIds())
                         .build();
                 Optional<File> saveFile = getSaveFile();
-                if (saveFile.isEmpty()) {
+                if (!saveFile.isPresent()) {
                     // TODO: figure out something better here
                     System.out.println("No save file selected");
                     return null;
@@ -112,7 +111,7 @@ public class Main extends JFrame {
                 try (InputStream data = client.fetchTle();
                      FileOutputStream output = new FileOutputStream(saveFile.get())) {
                     filter.filter(data, output);
-                } catch (IOException|InterruptedException ex) {
+                } catch (IOException | InterruptedException ex) {
                     System.err.println("Exception thrown when pulling data: " + ex.getMessage());
                     ex.printStackTrace();
                     throw ex;
@@ -139,7 +138,7 @@ public class Main extends JFrame {
      * Creates a JFileChooser for the user to select the file name and location of the filtered output.
      *
      * @return An {@link Optional} of the File selected for the downloaded output; empty if the user cancelled the file
-     *      selection
+     * selection
      */
     private Optional<File> getSaveFile() {
         JFileChooser fileChooser = new JFileChooser();
@@ -166,7 +165,7 @@ public class Main extends JFrame {
         }
 
         if (isIdSet(input)) {
-            return Set.of(input.split(","));
+            return fromInput(input);
         }
 
         if (isIdRange(input)) {
@@ -179,11 +178,20 @@ public class Main extends JFrame {
         return Collections.emptySet();
     }
 
+    private static Set<String> fromInput(String input) {
+        Set<String> result = new HashSet<>();
+        String[] parts = input.split(",");
+        for (String part : parts) {
+            result.add(part.trim());
+        }
+        return result;
+    }
+
     /**
      * Creates a Set of integers representing the range of numbers between the provided start and end values.
      *
      * @param start The integer to start the range with
-     * @param end The integer to end the range with
+     * @param end   The integer to end the range with
      * @return A {@link Set} of {@link Integer}s representing all numbers from the start to the end inclusive
      */
     private Set<Integer> getNumbersBetween(int start, int end) {
