@@ -1,11 +1,8 @@
-package com.tleasy.rest;
+package com.realmone.tleasy.rest;
 
-import com.tleasy.TleClient;
+import com.realmone.tleasy.TleClient;
 import lombok.Builder;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +13,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 public class SimpleTleClient implements TleClient {
 

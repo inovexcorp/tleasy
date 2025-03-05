@@ -1,4 +1,4 @@
-package com.tleasy.tle;
+package com.realmone.tleasy.tle;
 
 import com.tleasy.TleFilter;
 import org.junit.Assert;
@@ -32,7 +32,7 @@ public class TestSimpleTleFilter {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         // Create TleFilter
-        TleFilter filter = SimpleTleFilter.builder().targetNoradIds(Set.of("99999")).build();
+        TleFilter filter = com.tleasy.tle.SimpleTleFilter.builder().targetNoradIds(Set.of("99999")).build();
 
         // Expect an IOException due to invalid format
         filter.filter(inputStream, outputStream);
@@ -40,7 +40,7 @@ public class TestSimpleTleFilter {
 
     @Test
     public void test() throws Exception {
-        SimpleTleFilter filter = SimpleTleFilter.builder()
+        com.tleasy.tle.SimpleTleFilter filter = com.tleasy.tle.SimpleTleFilter.builder()
                 .targetNoradIds(Set.of("62903"))
                 .build();
         try (InputStream is = new FileInputStream("src/test/resources/data.tle");
