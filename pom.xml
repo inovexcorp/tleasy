@@ -56,7 +56,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.realmone.tleasy.Main
+                                        com.realmone.tleasy.TLEasy
                                     </mainClass>
                                 </manifest>
                             </archive>
@@ -81,11 +81,13 @@
                         </goals>
                         <configuration>
                             <headerType>gui</headerType>
+                            <stayAlive>true</stayAlive>
                             <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
                             <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
-                            <errTitle>TLEasy - Not So Easy...</errTitle>
+                            <chdir>.</chdir>
+                            <errTitle>TL Not So Easy...</errTitle>
                             <messages>
-                                <startupErr>Startup Error</startupErr>
+                                <startupErr>Issue launching the TLEasy Java application...</startupErr>
                                 <jreNotFoundErr>No JRE was found to run TLEasy... Install Java 1.8 or later please :)</jreNotFoundErr>
                                 <jreVersionErr>Compatible JRE was not found; we require at least Java 1.8</jreVersionErr>
                                 <launcherErr>Unknown issue launching TLEasy</launcherErr>
@@ -104,13 +106,20 @@
                                 <fileDescription>Utility to help streamline TLE data exploration for analysts.</fileDescription>
                             </versionInfo>
                             <classPath>
-                                <mainClass>com.realmone.tleasy.Main</mainClass>
+                                <mainClass>com.realmone.tleasy.TLEasy</mainClass>
+                                <addDependencies>false</addDependencies>
+                                <preCp>anything</preCp>
                             </classPath>
                             <jre>
-                                <path>%JAVA_HOME%;%PATH%</path>
                                 <requiresJdk>false</requiresJdk>
                                 <minVersion>1.8.0</minVersion>
+                                <initialHeapSize>100</initialHeapSize>
+                                <maxHeapSize>500</maxHeapSize>
                             </jre>
+                            <singleInstance>
+                                <mutexName>tleasy</mutexName>
+                                <windowTitle>TLEasy</windowTitle>
+                            </singleInstance>
                         </configuration>
                     </execution>
                 </executions>

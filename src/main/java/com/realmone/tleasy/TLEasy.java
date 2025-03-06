@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Main extends JFrame {
+public class TLEasy extends JFrame {
 
     // Swing Components
     private final JTextField idField;
@@ -27,7 +27,7 @@ public class Main extends JFrame {
     // TLEasy Variables
     private static TleClient client;
 
-    public Main() {
+    public TLEasy() {
         // TODO: Make prettier somehow
         // TODO: Add configuration form to update things
         // TODO: Add initial check for existing cert
@@ -282,20 +282,27 @@ public class Main extends JFrame {
      * @param args Arguments into the main method
      * @throws Exception if something goes wrong with the application startup
      */
-    public static void main(String... args) throws Exception {
-        if (!Configuration.isConfigured()) {
-            Configuration.configure();
-        }
-        // TODO: Pull this from a config instead of command line
-        client = SimpleTleClient.builder()
-                .tleDataEndpoint(Configuration.getTleDataEndpoint())
-                .keystoreFile(Configuration.getKeyStoreFile())
-                .keystorePassword(Configuration.getKeystorePassword())
-                .truststoreFile(Configuration.getTruststoreFile())
-                .truststorePassword(Configuration.getTruststorePassword())
-                .skipCertValidation(Configuration.isSkipCertificateValidation())
-                .build();
-
-        SwingUtilities.invokeLater(() -> new Main().setVisible(true));
+    public static void main(String... args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                if (!Configuration.isConfigured()) {
+                    //TODO really configure! only creates the file now
+                    Configuration.configure();
+                }
+                client = SimpleTleClient.builder()
+                        .tleDataEndpoint(Configuration.getTleDataEndpoint())
+                        .keystoreFile(Configuration.getKeyStoreFile())
+                        .keystorePassword(Configuration.getKeystorePassword())
+                        .truststoreFile(Configuration.getTruststoreFile())
+                        .truststorePassword(Configuration.getTruststorePassword())
+                        .skipCertValidation(Configuration.isSkipCertificateValidation())
+                        .build();
+            } catch (Exception e) {
+                throw new IllegalStateException("Issue setting up hooks for TLE Processing", e);
+            }
+            TLEasy m = new TLEasy();
+            m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            m.setVisible(true);
+        });
     }
 }
