@@ -286,8 +286,9 @@ public class TLEasy extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 if (!Configuration.isConfigured()) {
-                    //TODO really configure! only creates the file now
-                    Configuration.configure();
+                    ConfigSetup configSetup = new ConfigSetup();
+                    configSetup.setVisible(true);
+                    configSetup.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 }
                 client = SimpleTleClient.builder()
                         .tleDataEndpoint(Configuration.getTleDataEndpoint())
