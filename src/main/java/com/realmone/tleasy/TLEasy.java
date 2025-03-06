@@ -23,9 +23,16 @@ public class TLEasy extends JFrame {
     private final JTextField idField;
     private final JButton downloadButton;
     private final JProgressBar progressBar;
+    private final JLabel statusLabel;
 
     // TLEasy Variables
     private static TleClient client;
+
+    private static final JFileChooser fileChooser = new JFileChooser();
+
+    static {
+        fileChooser.setDialogTitle("Save TLE File");
+    }
 
     public TLEasy() {
         // TODO: Make prettier somehow
@@ -49,12 +56,17 @@ public class TLEasy extends JFrame {
         progressBar.setIndeterminate(true);
         progressBar.setVisible(false);
 
+        // Add a status label to the window
+        statusLabel = new JLabel("Ready");
+        statusLabel.setVisible(true);
+
         // Add components to frame
         // TODO: Add help text for valid inputs
         add(new JLabel("Enter 5-digit ID(s) or range: "));
         add(idField);
         add(downloadButton);
         add(progressBar);
+        add(statusLabel);
 
         // Validation handler on ID Field to control disabling button
         idField.getDocument().addDocumentListener(new DocumentListener() {
@@ -75,6 +87,7 @@ public class TLEasy extends JFrame {
         downloadButton.addActionListener(e -> {
             progressBar.setVisible(true);
             downloadButton.setEnabled(false);
+            statusLabel.setText("Downloading...");
             performDownload();
         });
     }
@@ -96,9 +109,11 @@ public class TLEasy extends JFrame {
      * clear the text field, reset the download button, and remove the progress bar.
      */
     private void performDownload() {
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+        System.out.println("Performing download action");
+        SwingWorker<Long, Void> worker = new SwingWorker<Long, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected Long doInBackground() throws Exception {
+                System.out.println("Setting up filter for: " + idField.getText());
                 TleFilter filter = SimpleTleFilter.builder()
                         .targetNoradIds(getIds())
                         .build();
@@ -108,26 +123,34 @@ public class TLEasy extends JFrame {
                     System.out.println("No save file selected");
                     return null;
                 }
+                System.out.println("Starting download and streaming to file");
                 try (InputStream data = client.fetchTle();
                      FileOutputStream output = new FileOutputStream(saveFile.get())) {
-                    filter.filter(data, output);
+                    return filter.filter(data, output);
                 } catch (IOException | InterruptedException ex) {
                     System.err.println("Exception thrown when pulling data: " + ex.getMessage());
                     ex.printStackTrace();
                     throw ex;
                 }
-                return null;
             }
 
             @Override
             protected void done() {
                 try {
-                    get();
+                    Long count = get();  // Retrieve the number of TLE entries downloaded
                     progressBar.setVisible(false);
-                    downloadButton.setEnabled(false);
+                    downloadButton.setEnabled(true);
                     idField.setText("");
+
+                    if (count != null) {
+                        statusLabel.setText("Fetched " + count + " TLE entries");
+                    } else {
+                        statusLabel.setText("No TLE entries downloaded");
+                    }
+
                 } catch (Exception ex) {
                     displayErrorMessage("Download failed: " + ex.getMessage());
+                    statusLabel.setText("Download failed");
                 }
             }
         };
@@ -141,9 +164,6 @@ public class TLEasy extends JFrame {
      * selection
      */
     private Optional<File> getSaveFile() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save TLE File");
-
         int userSelection = fileChooser.showSaveDialog(this);
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {
@@ -286,9 +306,7 @@ public class TLEasy extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 if (!Configuration.isConfigured()) {
-                    ConfigSetup configSetup = new ConfigSetup();
-                    configSetup.setVisible(true);
-                    configSetup.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                    new ConfigSetup();
                 }
                 client = SimpleTleClient.builder()
                         .tleDataEndpoint(Configuration.getTleDataEndpoint())

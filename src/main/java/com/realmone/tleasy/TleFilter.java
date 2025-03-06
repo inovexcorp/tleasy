@@ -17,5 +17,5 @@ public interface TleFilter {
      * @param outputStream The TLE data to include in the output of the filter
      * @throws IOException If there is an issue working with the streams of data
      */
-    void filter(InputStream tleStream, OutputStream outputStream) throws IOException;
+    long filter(InputStream tleStream, OutputStream outputStream) throws IOException;
 }
