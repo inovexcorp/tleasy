@@ -14,6 +14,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <big.jar>tleasy-all.jar</big.jar>
     </properties>
 
     <dependencies>
@@ -51,6 +52,7 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <finalName>tleasy</finalName>
                             <archive>
                                 <manifest>
                                     <mainClass>
@@ -80,11 +82,34 @@
                         <configuration>
                             <headerType>gui</headerType>
                             <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
-                            <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
-                            <errTitle>App Error</errTitle>
+                            <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
+                            <errTitle>TLEasy - Not So Easy...</errTitle>
+                            <stayAlive>true</stayAlive>
+                            <splash>
+                                <file>splash.bmp</file>
+                                <waitForWindow>true</waitForWindow>
+                                <timeout>30</timeout>
+                            </splash>
+                            <icon>tleasy.ico</icon>
+                            <versionInfo>
+                                <companyName>RealmOne</companyName>
+                                <productName>TLEasy</productName>
+                            </versionInfo>
                             <classPath>
                                 <mainClass>com.realmone.tleasy.Main</mainClass>
                             </classPath>
+                            <jre>
+                                <path>%JAVA_HOME%;%PATH%</path>
+                                <requiresJdk>false</requiresJdk>
+                                <requires64Bit>false</requires64Bit>
+                                <minVersion>1.8.0</minVersion>
+                                <!-- Heap sizes in MB and % of available memory. -->
+                                <!--                                <initialHeapSize>MB</initialHeapSize>-->
+                                <!--                                <initialHeapPercent>%</initialHeapPercent>-->
+                                <!--                                <maxHeapSize>MB</maxHeapSize>-->
+                                <!--                                <maxHeapPercent>%</maxHeapPercent>-->
+                                <!--                                <opt>text (%VAR%)</opt>-->
+                            </jre>
                         </configuration>
                     </execution>
                 </executions>

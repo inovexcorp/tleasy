@@ -283,18 +283,18 @@ public class Main extends JFrame {
      * @throws Exception if something goes wrong with the application startup
      */
     public static void main(String... args) throws Exception {
+        if (!Configuration.isConfigured()) {
+            Configuration.configure();
+        }
         // TODO: Pull this from a config instead of command line
         client = SimpleTleClient.builder()
-                .tleDataEndpoint(args[0])
-                .keystoreFile(new File(args[1]))
-                .keystorePassword(args[2].toCharArray())
-                .truststoreFile(new File(args[3]))
-                .truststorePassword(args[4].toCharArray())
+                .tleDataEndpoint(Configuration.getTleDataEndpoint())
+                .keystoreFile(Configuration.getKeyStoreFile())
+                .keystorePassword(Configuration.getKeystorePassword())
+                .truststoreFile(Configuration.getTruststoreFile())
+                .truststorePassword(Configuration.getTruststorePassword())
                 .build();
 
-
-        SwingUtilities.invokeLater(() -> {
-            new Main().setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new Main().setVisible(true));
     }
 }
