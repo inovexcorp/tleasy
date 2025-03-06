@@ -84,16 +84,24 @@
                             <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
                             <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
                             <errTitle>TLEasy - Not So Easy...</errTitle>
-                            <stayAlive>true</stayAlive>
+                            <messages>
+                                <startupErr>Startup Error</startupErr>
+                                <jreNotFoundErr>No JRE was found to run TLEasy... Install Java 1.8 or later please :)</jreNotFoundErr>
+                                <jreVersionErr>Compatible JRE was not found; we require at least Java 1.8</jreVersionErr>
+                                <launcherErr>Unknown issue launching TLEasy</launcherErr>
+                            </messages>
                             <splash>
                                 <file>splash.bmp</file>
-                                <waitForWindow>true</waitForWindow>
+                                <waitForWindow>false</waitForWindow>
                                 <timeout>30</timeout>
                             </splash>
+                            <dontWrapJar>false</dontWrapJar>
                             <icon>tleasy.ico</icon>
                             <versionInfo>
                                 <companyName>RealmOne</companyName>
                                 <productName>TLEasy</productName>
+                                <language>ENGLISH</language>
+                                <fileDescription>Utility to help streamline TLE data exploration for analysts.</fileDescription>
                             </versionInfo>
                             <classPath>
                                 <mainClass>com.realmone.tleasy.Main</mainClass>
@@ -101,14 +109,7 @@
                             <jre>
                                 <path>%JAVA_HOME%;%PATH%</path>
                                 <requiresJdk>false</requiresJdk>
-                                <requires64Bit>false</requires64Bit>
                                 <minVersion>1.8.0</minVersion>
-                                <!-- Heap sizes in MB and % of available memory. -->
-                                <!--                                <initialHeapSize>MB</initialHeapSize>-->
-                                <!--                                <initialHeapPercent>%</initialHeapPercent>-->
-                                <!--                                <maxHeapSize>MB</maxHeapSize>-->
-                                <!--                                <maxHeapPercent>%</maxHeapPercent>-->
-                                <!--                                <opt>text (%VAR%)</opt>-->
                             </jre>
                         </configuration>
                     </execution>
