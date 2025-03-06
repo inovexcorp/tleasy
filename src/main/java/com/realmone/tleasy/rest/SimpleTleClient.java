@@ -8,12 +8,12 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
@@ -22,12 +22,16 @@ public class SimpleTleClient implements TleClient {
     private static final String PKCS12 = "PKCS12";
     private final String tleDataEndpoint;
     private final SSLContext sslContext;
+    private final boolean skipCertValidation;
 
     @Builder
     private SimpleTleClient(String tleDataEndpoint, File keystoreFile, char[] keystorePassword,
-                            File truststoreFile, char[] truststorePassword) throws IOException {
+                            File truststoreFile, char[] truststorePassword, boolean skipCertValidation)
+            throws IOException {
         this.tleDataEndpoint = tleDataEndpoint;
-        this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, truststoreFile, truststorePassword);
+        this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, truststoreFile,
+                truststorePassword, skipCertValidation);
+        this.skipCertValidation = skipCertValidation;
     }
 
     /**
@@ -44,6 +48,10 @@ public class SimpleTleClient implements TleClient {
         if (connection instanceof HttpsURLConnection) {
             HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
             httpsConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+            if (skipCertValidation) {
+                // Bypass hostname verification
+                httpsConnection.setHostnameVerifier((hostname, session) -> true);
+            }
         }
 
         connection.setRequestMethod("GET");
@@ -58,38 +66,73 @@ public class SimpleTleClient implements TleClient {
     }
 
     /**
-     * Creates an SSLContext for secure communication using Java 8-compatible tooling.
+     * Creates an SSLContext for secure communication, with an option to skip certificate validation.
      *
+     * @param keystoreFile       The client keystore file
+     * @param keystorePassword   The password for the keystore
+     * @param truststoreFile     The truststore file (optional, can be null if skipping validation)
+     * @param truststorePassword The password for the truststore
+     * @param skipCertValidation Whether to disable SSL certificate validation
      * @return Configured SSLContext
      * @throws IOException If any security-related issues occur
      */
     private static SSLContext createSecureSslContext(File keystoreFile, char[] keystorePassword,
-                                                     File truststoreFile, char[] truststorePassword) throws IOException {
+                                                     File truststoreFile, char[] truststorePassword,
+                                                     boolean skipCertValidation) throws IOException {
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
 
             // Load client keystore
-            KeyStore keyStore = KeyStore.getInstance(PKCS12);
-            try (InputStream keyStoreStream = new FileInputStream(keystoreFile)) {
-                keyStore.load(keyStoreStream, keystorePassword);
+            KeyManagerFactory kmf = null;
+            if (keystoreFile != null && keystorePassword != null) {
+                KeyStore keyStore = KeyStore.getInstance(PKCS12);
+                try (InputStream keyStoreStream = Files.newInputStream(keystoreFile.toPath())) {
+                    keyStore.load(keyStoreStream, keystorePassword);
+                }
+                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                kmf.init(keyStore, keystorePassword);
             }
 
-            // Load truststore
-            KeyStore trustStore = KeyStore.getInstance(PKCS12);
-            try (InputStream trustStoreStream = new FileInputStream(truststoreFile)) {
-                trustStore.load(trustStoreStream, truststorePassword);
+            TrustManagerFactory tmf = null;
+            if (!skipCertValidation) {
+                // Load truststore
+                if (truststoreFile != null && truststorePassword != null) {
+                    KeyStore trustStore = KeyStore.getInstance(PKCS12);
+                    try (InputStream trustStoreStream = Files.newInputStream(truststoreFile.toPath())) {
+                        trustStore.load(trustStoreStream, truststorePassword);
+                    }
+
+                    // Create TrustManager (to trust the remote server)
+                    tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    tmf.init(trustStore);
+                }
             }
 
-            // Create KeyManager (for client authentication)
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, keystorePassword);
+            // If skipping certificate validation, use a permissive TrustManager
+            javax.net.ssl.TrustManager[] trustManagers;
+            if (skipCertValidation) {
+                trustManagers = new javax.net.ssl.TrustManager[]{
+                        new javax.net.ssl.X509TrustManager() {
+                            @Override
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                return null;
+                            }
 
-            // Create TrustManager (to trust the remote server)
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
+                            @Override
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
 
-            // Initialize the SSLContext with the configured key and trust managers
-            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+                            @Override
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+                        }
+                };
+            } else {
+                trustManagers = tmf != null ? tmf.getTrustManagers() : null;
+            }
+
+            // Initialize SSLContext
+            sslContext.init(kmf != null ? kmf.getKeyManagers() : null, trustManagers, null);
 
             return sslContext;
         } catch (GeneralSecurityException e) {

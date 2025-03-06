@@ -293,6 +293,7 @@ public class Main extends JFrame {
                 .keystorePassword(Configuration.getKeystorePassword())
                 .truststoreFile(Configuration.getTruststoreFile())
                 .truststorePassword(Configuration.getTruststorePassword())
+                .skipCertValidation(Configuration.isSkipCertificateValidation())
                 .build();
 
         SwingUtilities.invokeLater(() -> new Main().setVisible(true));
