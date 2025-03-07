@@ -1,19 +1,33 @@
 package com.realmone.tleasy;
 
-import javax.swing.*;
-import java.awt.*;
+import com.realmone.tleasy.ui.RegexDocumentListener;
+
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Properties;
 
 public class ConfigSetup extends JDialog {
 
-    private JTextField tleEndpointField;
-    private JTextField keystoreField;
-    private JPasswordField keystorePassField;
-    private JTextField truststoreField;
-    private JPasswordField truststorePassField;
-    private JCheckBox skipCertValidationCheckBox;
+    private static final String HTTP_URL_REGEX =
+            "^(https?://)" +                      // Protocol: http:// or https://
+                    "(([\\w.-]+)\\.([a-zA-Z]{2,}))" +      // Domain name (e.g., example.com)
+                    "(:\\d{1,5})?" +                       // Optional port (e.g., :8080)
+                    "(/[^\\s]*)?$";                        // Optional path (e.g., /index.html)
+
+    private final JTextField tleEndpointField;
+    private final JTextField keystoreField;
+    private final JPasswordField keystorePassField;
+    private final JTextField truststoreField;
+    private final JPasswordField truststorePassField;
+    private final JCheckBox skipCertValidationCheckBox;
 
     public ConfigSetup() {
         setTitle("Initial Configuration Setup");
@@ -51,12 +65,25 @@ public class ConfigSetup extends JDialog {
 
         // Buttons
         JButton saveButton = new JButton("Save");
+        saveButton.setEnabled(false);
         saveButton.addActionListener(new SaveButtonListener());
         add(saveButton);
 
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> dispose());
+        JButton cancelButton = new JButton("Cancel & Quit");
+        cancelButton.addActionListener(e -> {
+            dispose();
+            // Canceling configuration will prevent success in the next step
+            System.exit(1);
+        });
         add(cancelButton);
+
+        // Validate configuration of the tle endpoint as a valid URL.
+        tleEndpointField.getDocument().addDocumentListener(
+                RegexDocumentListener.builder()
+                        .button(saveButton)
+                        .textField(tleEndpointField)
+                        .pattern(HTTP_URL_REGEX)
+                        .build());
 
         setLocationRelativeTo(null);
         setVisible(true);
@@ -65,21 +92,26 @@ public class ConfigSetup extends JDialog {
     private class SaveButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            Properties config = new Properties();
-            config.setProperty(Configuration.PROP_TLE_ENDPOINT, tleEndpointField.getText());
-            config.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
-            config.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
-            config.setProperty(Configuration.PROP_TRUSTSTORE, truststoreField.getText());
-            config.setProperty(Configuration.PROP_TRUSTSTORE_PASS, new String(truststorePassField.getPassword()));
-            config.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
-
+            Properties newConfiguration = getProperties();
+            // Configure the back end properties file in ~
             try {
-                Configuration.configure(config);
+                Configuration.configure(newConfiguration);
                 JOptionPane.showMessageDialog(ConfigSetup.this, "Configuration saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 dispose();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(ConfigSetup.this, "Failed to save configuration: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    private Properties getProperties() {
+        Properties newConfiguration = new Properties();
+        newConfiguration.setProperty(Configuration.PROP_TLE_ENDPOINT, tleEndpointField.getText());
+        newConfiguration.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
+        newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
+        newConfiguration.setProperty(Configuration.PROP_TRUSTSTORE, truststoreField.getText());
+        newConfiguration.setProperty(Configuration.PROP_TRUSTSTORE_PASS, new String(truststorePassField.getPassword()));
+        newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
+        return newConfiguration;
     }
 }
