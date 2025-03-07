@@ -18,9 +18,9 @@ public class ConfigSetup extends JDialog {
 
     private static final String HTTP_URL_REGEX =
             "^(https?://)" +                      // Protocol: http:// or https://
-                    "(([\\w.-]+)\\.([a-zA-Z]{2,}))" +      // Domain name (e.g., example.com)
+                    "((([a-zA-Z0-9.-]+)\\.([a-zA-Z]{2,})|localhost|\\d{1,3}(\\.\\d{1,3}){3}))" +  // Domain, Localhost, or IP
                     "(:\\d{1,5})?" +                       // Optional port (e.g., :8080)
-                    "(/[^\\s]*)?$";                        // Optional path (e.g., /index.html)
+                    "(/[^\\s]*)?$";                        // Optional path, query params, fragment
 
     private final JTextField tleEndpointField;
     private final JTextField keystoreField;

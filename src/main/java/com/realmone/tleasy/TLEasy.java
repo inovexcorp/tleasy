@@ -147,7 +147,7 @@ public class TLEasy extends JFrame {
                 try {
                     Long count = get();  // Retrieve the number of TLE entries downloaded
                     progressBar.setVisible(false);
-                    downloadButton.setEnabled(true);
+                    downloadButton.setEnabled(false);
                     idField.setText("");
 
                     if (count != null) {
