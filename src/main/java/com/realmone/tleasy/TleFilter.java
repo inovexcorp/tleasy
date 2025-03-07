@@ -15,6 +15,7 @@ public interface TleFilter {
      *
      * @param tleStream    The incoming TLE data
      * @param outputStream The TLE data to include in the output of the filter
+     * @return The number of TLE records that made it through the filtering
      * @throws IOException If there is an issue working with the streams of data
      */
     long filter(InputStream tleStream, OutputStream outputStream) throws IOException;
