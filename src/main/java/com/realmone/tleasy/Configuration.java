@@ -1,8 +1,16 @@
 package com.realmone.tleasy;
 
-import java.io.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Properties;
 
+@UtilityClass
 public class Configuration {
 
     private static final File CONFIG_FILE = new File(System.getProperty("user.home"), ".tleasy-config.properties");
