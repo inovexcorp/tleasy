@@ -193,7 +193,7 @@ public class TLEasy extends JFrame {
         }
 
         if (isIdSet(input)) {
-            return fromInput(input);
+            return setFromCsvRow(input);
         }
 
         if (isIdRange(input)) {
@@ -206,10 +206,9 @@ public class TLEasy extends JFrame {
         return Collections.emptySet();
     }
 
-    private static Set<String> fromInput(String input) {
+    private static Set<String> setFromCsvRow(String commaSeparateString) {
         Set<String> result = new HashSet<>();
-        String[] parts = input.split(",");
-        for (String part : parts) {
+        for (String part : commaSeparateString.split(",")) {
             result.add(part.trim());
         }
         return result;
