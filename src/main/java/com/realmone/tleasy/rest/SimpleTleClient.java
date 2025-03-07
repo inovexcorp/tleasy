@@ -58,6 +58,7 @@ public class SimpleTleClient implements TleClient {
         connection.setDoInput(true);
 
         int responseCode = connection.getResponseCode();
+        // TODO - consider redirect following
         if (responseCode != HttpURLConnection.HTTP_OK) {
             throw new IOException("Remote server did not respond with success: " + responseCode);
         }
