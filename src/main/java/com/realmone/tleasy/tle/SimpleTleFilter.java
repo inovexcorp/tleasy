@@ -1,6 +1,6 @@
-package com.tleasy.tle;
+package com.realmone.tleasy.tle;
 
-import com.tleasy.TleFilter;
+import com.realmone.tleasy.TleFilter;
 import lombok.Builder;
 
 import java.io.BufferedReader;
@@ -41,10 +41,12 @@ public class SimpleTleFilter implements TleFilter {
      *
      * @param input  The incoming TLE data
      * @param output The TLE data to include in the output of the filter
+     * @return The number of included TLE record rows
      * @throws IOException If there is an issue processing the stream of TLE data
      */
     @Override
-    public void filter(InputStream input, OutputStream output) throws IOException {
+    public long filter(InputStream input, OutputStream output) throws IOException {
+        long counter = 0L;
         // Handle the buffered reader/writer in the try block to ensure they're closed appropriately
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
              BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8))) {
@@ -78,12 +80,14 @@ public class SimpleTleFilter implements TleFilter {
                     writer.newLine();
                     writer.write(line2);
                     writer.newLine();
+                    counter++;
                 }
                 title = null; // Reset title for the next entry
             }
 
             writer.flush(); // Ensure everything is written to the output
         }
+        return counter;
     }
 
     private String extractNoradId(String line2) {

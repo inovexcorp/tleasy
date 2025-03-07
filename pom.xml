@@ -11,9 +11,10 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <big.jar>tleasy-all.jar</big.jar>
     </properties>
 
     <dependencies>
@@ -51,10 +52,11 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <finalName>tleasy</finalName>
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.realmone.tleasy.Main
+                                        com.realmone.tleasy.TLEasy
                                     </mainClass>
                                 </manifest>
                             </archive>
@@ -66,29 +68,62 @@
                 </executions>
             </plugin>
             <!-- Creates Windows Executable Using Jar -->
-<!--            <plugin>-->
-<!--                <groupId>com.akathist.maven.plugins.launch4j</groupId>-->
-<!--                <artifactId>launch4j-maven-plugin</artifactId>-->
-<!--                <version>2.5.3</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>l4j-clui</id>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>launch4j</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <headerType>gui</headerType>-->
-<!--                            <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>-->
-<!--                            <jar>${project.build.directory}/${project.build.finalName}.jar</jar>-->
-<!--                            <errTitle>App Error</errTitle>-->
-<!--                            <classPath>-->
-<!--                                <mainClass>com.realmone.tleasy.Main</mainClass>-->
-<!--                            </classPath>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.5.3</version>
+                <executions>
+                    <execution>
+                        <id>l4j-clui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <stayAlive>true</stayAlive>
+                            <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
+                            <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
+                            <chdir>.</chdir>
+                            <errTitle>TL Not So Easy...</errTitle>
+                            <messages>
+                                <startupErr>Issue launching the TLEasy Java application...</startupErr>
+                                <jreNotFoundErr>No JRE was found to run TLEasy... Install Java 1.8 or later please :)</jreNotFoundErr>
+                                <jreVersionErr>Compatible JRE was not found; we require at least Java 1.8</jreVersionErr>
+                                <launcherErr>Unknown issue launching TLEasy</launcherErr>
+                            </messages>
+                            <splash>
+                                <file>splash.bmp</file>
+                                <waitForWindow>false</waitForWindow>
+                                <timeout>30</timeout>
+                            </splash>
+                            <dontWrapJar>false</dontWrapJar>
+                            <icon>tleasy.ico</icon>
+                            <versionInfo>
+                                <companyName>RealmOne</companyName>
+                                <productName>TLEasy</productName>
+                                <language>ENGLISH</language>
+                                <fileDescription>Utility to help streamline TLE data exploration for analysts.</fileDescription>
+                            </versionInfo>
+                            <classPath>
+                                <mainClass>com.realmone.tleasy.TLEasy</mainClass>
+                                <addDependencies>false</addDependencies>
+                                <preCp>anything</preCp>
+                            </classPath>
+                            <jre>
+                                <requiresJdk>false</requiresJdk>
+                                <minVersion>1.8.0</minVersion>
+                                <initialHeapSize>100</initialHeapSize>
+                                <maxHeapSize>500</maxHeapSize>
+                            </jre>
+                            <singleInstance>
+                                <mutexName>tleasy</mutexName>
+                                <windowTitle>TLEasy</windowTitle>
+                            </singleInstance>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
