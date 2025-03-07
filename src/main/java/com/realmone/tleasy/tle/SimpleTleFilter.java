@@ -41,6 +41,7 @@ public class SimpleTleFilter implements TleFilter {
      *
      * @param input  The incoming TLE data
      * @param output The TLE data to include in the output of the filter
+     * @return The number of included TLE record rows
      * @throws IOException If there is an issue processing the stream of TLE data
      */
     @Override
