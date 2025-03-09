@@ -2,16 +2,11 @@ package com.realmone.tleasy;
 
 import com.realmone.tleasy.ui.RegexDocumentListener;
 
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
-import java.awt.GridLayout;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.Properties;
 
 public class ConfigSetup extends JDialog {
@@ -31,9 +26,9 @@ public class ConfigSetup extends JDialog {
 
     public ConfigSetup() {
         setTitle("Initial Configuration Setup");
-        setLayout(new GridLayout(7, 2));
+        setLayout(new GridLayout(7, 3)); // Adjusted to accommodate file chooser buttons
         setModal(true);
-        setSize(500, 300);
+        setSize(600, 300);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Fields for input
@@ -47,21 +42,31 @@ public class ConfigSetup extends JDialog {
         // Labels
         add(new JLabel("TLE Data Endpoint:"));
         add(tleEndpointField);
+        add(new JLabel()); // Empty cell for layout alignment
 
         add(new JLabel("Keystore File Path:"));
         add(keystoreField);
+        JButton keystoreBrowseButton = new JButton("Browse...");
+        keystoreBrowseButton.addActionListener(e -> chooseFile(keystoreField));
+        add(keystoreBrowseButton);
 
         add(new JLabel("Keystore Password:"));
         add(keystorePassField);
+        add(new JLabel()); // Empty cell for layout alignment
 
         add(new JLabel("Truststore File Path:"));
         add(truststoreField);
+        JButton truststoreBrowseButton = new JButton("Browse...");
+        truststoreBrowseButton.addActionListener(e -> chooseFile(truststoreField));
+        add(truststoreBrowseButton);
 
         add(new JLabel("Truststore Password:"));
         add(truststorePassField);
+        add(new JLabel()); // Empty cell for layout alignment
 
         add(new JLabel("Skip Cert Validation:"));
         add(skipCertValidationCheckBox);
+        add(new JLabel()); // Empty cell for layout alignment
 
         // Buttons
         JButton saveButton = new JButton("Save");
@@ -72,10 +77,10 @@ public class ConfigSetup extends JDialog {
         JButton cancelButton = new JButton("Cancel & Quit");
         cancelButton.addActionListener(e -> {
             dispose();
-            // Canceling configuration will prevent success in the next step
             System.exit(1);
         });
         add(cancelButton);
+        add(new JLabel()); // Empty cell for layout alignment
 
         // Validate configuration of the tle endpoint as a valid URL.
         tleEndpointField.getDocument().addDocumentListener(
@@ -89,11 +94,20 @@ public class ConfigSetup extends JDialog {
         setVisible(true);
     }
 
+    private void chooseFile(JTextField targetField) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        int returnValue = fileChooser.showOpenDialog(this);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            targetField.setText(selectedFile.getAbsolutePath());
+        }
+    }
+
     private class SaveButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             Properties newConfiguration = getProperties();
-            // Configure the back end properties file in ~
             try {
                 Configuration.configure(newConfiguration);
                 JOptionPane.showMessageDialog(ConfigSetup.this, "Configuration saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
