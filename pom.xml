@@ -80,8 +80,7 @@
                             <goal>launch4j</goal>
                         </goals>
                         <configuration>
-                            <headerType>gui</headerType>
-                            <stayAlive>true</stayAlive>
+                            <headerType>console</headerType>
                             <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
                             <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
                             <chdir>.</chdir>
@@ -92,11 +91,6 @@
                                 <jreVersionErr>Compatible JRE was not found; we require at least Java 1.8</jreVersionErr>
                                 <launcherErr>Unknown issue launching TLEasy</launcherErr>
                             </messages>
-                            <splash>
-                                <file>splash.bmp</file>
-                                <waitForWindow>false</waitForWindow>
-                                <timeout>30</timeout>
-                            </splash>
                             <dontWrapJar>false</dontWrapJar>
                             <icon>tleasy.ico</icon>
                             <versionInfo>
