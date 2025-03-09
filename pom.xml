@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
+    <name>TLEasy</name>
     <groupId>com.realmone</groupId>
     <artifactId>tleasy</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -81,7 +81,7 @@
                         </goals>
                         <configuration>
                             <headerType>console</headerType>
-                            <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
+                            <outfile>${project.build.directory}/${project.name}.exe</outfile>
                             <jar>${project.build.directory}/tleasy-jar-with-dependencies.jar</jar>
                             <chdir>.</chdir>
                             <errTitle>TL Not So Easy...</errTitle>
