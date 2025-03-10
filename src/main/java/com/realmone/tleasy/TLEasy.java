@@ -3,16 +3,6 @@ package com.realmone.tleasy;
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 
-import java.awt.FlowLayout;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -27,6 +17,16 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.FlowLayout;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TLEasy extends JFrame {
 
@@ -57,7 +57,7 @@ public class TLEasy extends JFrame {
         setLayout(new FlowLayout());
 
         // Create Menu Bar
-        menuBar =  new JMenuBar();
+        menuBar = new JMenuBar();
         setJMenuBar(menuBar);
         advMenu = new JMenu("Advanced");
         menuBar.add(advMenu);
@@ -373,21 +373,6 @@ public class TLEasy extends JFrame {
      */
     public static void main(String... args) {
         SwingUtilities.invokeLater(() -> {
-//            boolean exceptionThrown = false;
-//            do {
-//                try {
-//                    if (!Configuration.isConfigured()) {
-//                        new ConfigSetup();
-//                    }
-//                    setupClient();
-//                    exceptionThrown = false;
-//                } catch (Exception e) {
-//                    System.err.println("Issue setting up hooks for TLE Processing");
-//                    e.printStackTrace();
-//                    JOptionPane.showMessageDialog(null, "Failed to load configuration: " + e.getMessage() + "\nPlease re-enter your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
-//                    exceptionThrown = true;
-//                }
-//            } while (exceptionThrown);
             configureAndSetupClient(true, true);
             TLEasy m = new TLEasy();
             m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
