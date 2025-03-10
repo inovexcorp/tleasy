@@ -17,6 +17,9 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
@@ -32,6 +35,9 @@ public class TLEasy extends JFrame {
     private final JButton downloadButton;
     private final JProgressBar progressBar;
     private final JLabel statusLabel;
+    private final JMenuBar menuBar;
+    private final JMenu advMenu;
+    private final JMenuItem configurationItem;
 
     // TLEasy Variables
     private static TleClient client;
@@ -44,13 +50,20 @@ public class TLEasy extends JFrame {
 
     public TLEasy() {
         // TODO: Make prettier somehow
-        // TODO: Add configuration form to update things
-        // TODO: Add initial check for existing cert
         // Frame setup
         setTitle("TLEasy");
         setSize(300, 150);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new FlowLayout());
+
+        // Create Menu Bar
+        menuBar =  new JMenuBar();
+        setJMenuBar(menuBar);
+        advMenu = new JMenu("Advanced");
+        menuBar.add(advMenu);
+        configurationItem = new JMenuItem("Configuration");
+        advMenu.add(configurationItem);
+        configurationItem.addActionListener(e -> configureAndSetupClient(false, false));
 
         // Create ID Field
         idField = new JTextField(20);
@@ -98,6 +111,46 @@ public class TLEasy extends JFrame {
             statusLabel.setText("Downloading...");
             performDownload();
         });
+    }
+
+    /**
+     * Builds the TleClient with the stored configuration.
+     *
+     * @throws IOException If something goes wrong setting up the SSL context
+     */
+    private static void setupClient() throws IOException {
+        client = SimpleTleClient.builder()
+                .tleDataEndpoint(Configuration.getTleDataEndpoint())
+                .keystoreFile(Configuration.getKeyStoreFile())
+                .keystorePassword(Configuration.getKeystorePassword())
+                .truststoreFile(Configuration.getTruststoreFile())
+                .truststorePassword(Configuration.getTruststorePassword())
+                .skipCertValidation(Configuration.isSkipCertificateValidation())
+                .build();
+    }
+
+    /**
+     * Uses the {@link ConfigSetup} window to save the configuration and setup the {@link TleClient}. Loops until the
+     * client can be initialized without exceptions.
+     *
+     * @param alreadyConfiguredCheck Whether to check if the configuration is set and not open the window if so
+     */
+    private static void configureAndSetupClient(boolean alreadyConfiguredCheck, boolean exitOnClose) {
+        boolean exceptionThrown;
+        do {
+            try {
+                if (!alreadyConfiguredCheck || !Configuration.isConfigured()) {
+                    new ConfigSetup(exitOnClose);
+                }
+                setupClient();
+                exceptionThrown = false;
+            } catch (Exception e) {
+                System.err.println("Issue setting up hooks for TLE Processing");
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Failed to load configuration: " + e.getMessage() + "\nPlease re-enter your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
+                exceptionThrown = true;
+            }
+        } while (exceptionThrown);
     }
 
     /**
@@ -207,6 +260,12 @@ public class TLEasy extends JFrame {
         return Collections.emptySet();
     }
 
+    /**
+     * Turns a comma separated string into a set of trimmed strings.
+     *
+     * @param commaSeparateString A string of comma separated values.
+     * @return A {@link Set} of {@link String}s
+     */
     private static Set<String> setFromCsvRow(String commaSeparateString) {
         Set<String> result = new HashSet<>();
         for (String part : commaSeparateString.split(",")) {
@@ -264,7 +323,10 @@ public class TLEasy extends JFrame {
         return input.matches("\\d{5}\\s*-\\s*\\d{5}");
     }
 
-
+    /**
+     * Determines whether the ID field is a valid format and sets the enabled property on the download button
+     * accordingly.
+     */
     private void checkID() {
         String input = idField.getText();
         boolean isValid = validateInput(input);
@@ -308,32 +370,25 @@ public class TLEasy extends JFrame {
      * Entry point for the application. Creates the TleClient and starts up the Swing application.
      *
      * @param args Arguments into the main method
-     * @throws Exception if something goes wrong with the application startup
      */
     public static void main(String... args) {
         SwingUtilities.invokeLater(() -> {
-            boolean exceptionThrown = false;
-            do {
-                try {
-                    if (!Configuration.isConfigured()) {
-                        new ConfigSetup();
-                    }
-                    client = SimpleTleClient.builder()
-                            .tleDataEndpoint(Configuration.getTleDataEndpoint())
-                            .keystoreFile(Configuration.getKeyStoreFile())
-                            .keystorePassword(Configuration.getKeystorePassword())
-                            .truststoreFile(Configuration.getTruststoreFile())
-                            .truststorePassword(Configuration.getTruststorePassword())
-                            .skipCertValidation(Configuration.isSkipCertificateValidation())
-                            .build();
-                    exceptionThrown = false;
-                } catch (Exception e) {
-                    System.err.println("Issue setting up hooks for TLE Processing");
-                    e.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Failed to load configuration: " + e.getMessage() + "\nPlease re-enter your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
-                    exceptionThrown = true;
-                }
-            } while (exceptionThrown);
+//            boolean exceptionThrown = false;
+//            do {
+//                try {
+//                    if (!Configuration.isConfigured()) {
+//                        new ConfigSetup();
+//                    }
+//                    setupClient();
+//                    exceptionThrown = false;
+//                } catch (Exception e) {
+//                    System.err.println("Issue setting up hooks for TLE Processing");
+//                    e.printStackTrace();
+//                    JOptionPane.showMessageDialog(null, "Failed to load configuration: " + e.getMessage() + "\nPlease re-enter your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
+//                    exceptionThrown = true;
+//                }
+//            } while (exceptionThrown);
+            configureAndSetupClient(true, true);
             TLEasy m = new TLEasy();
             m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             m.setVisible(true);

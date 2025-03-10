@@ -1,18 +1,24 @@
 package com.realmone.tleasy;
 
-import com.realmone.tleasy.ui.RegexDocumentListener;
+import com.realmone.tleasy.ui.DisableButtonDocumentListener;
+import com.realmone.tleasy.ui.InputValidator;
+import com.realmone.tleasy.ui.NotNullInputValidator;
+import com.realmone.tleasy.ui.RegexInputValidator;
 
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.Properties;
+import java.util.stream.Stream;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
@@ -31,12 +37,17 @@ public class ConfigSetup extends JDialog {
     private final JPasswordField truststorePassField;
     private final JCheckBox skipCertValidationCheckBox;
 
-    public ConfigSetup() {
+    public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
-        setLayout(new GridLayout(7, 3)); // Adjusted to accommodate file chooser buttons
         setModal(true);
         setSize(600, 300);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
+        // Panel for Styling
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(7, 3)); // Adjusted to accommodate file chooser buttons
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Adds padding around the form
+
 
         // Fields for input
         tleEndpointField = new JTextField();
@@ -46,57 +57,74 @@ public class ConfigSetup extends JDialog {
         truststorePassField = new JPasswordField();
         skipCertValidationCheckBox = new JCheckBox("Skip SSL Certificate Validation");
 
-        // Labels
-        add(new JLabel("TLE Data Endpoint:"));
-        add(tleEndpointField);
-        add(new JLabel()); // Empty cell for layout alignment
+        // Add labels and fields
+        panel.add(new JLabel("TLE Data Endpoint:"));
+        panel.add(tleEndpointField);
+        panel.add(new JLabel()); // Empty cell for layout alignment
 
-        add(new JLabel("Keystore File Path:"));
-        add(keystoreField);
+        panel.add(new JLabel("Keystore File Path:"));
+        panel.add(keystoreField);
         JButton keystoreBrowseButton = new JButton("Browse...");
         keystoreBrowseButton.addActionListener(e -> chooseFile(keystoreField));
-        add(keystoreBrowseButton);
+        panel.add(keystoreBrowseButton);
 
-        add(new JLabel("Keystore Password:"));
-        add(keystorePassField);
-        add(new JLabel()); // Empty cell for layout alignment
+        panel.add(new JLabel("Keystore Password:"));
+        panel.add(keystorePassField);
+        panel.add(new JLabel()); // Empty cell for layout alignment
 
-        add(new JLabel("Truststore File Path:"));
-        add(truststoreField);
+        panel.add(new JLabel("Truststore File Path:"));
+        panel.add(truststoreField);
         JButton truststoreBrowseButton = new JButton("Browse...");
         truststoreBrowseButton.addActionListener(e -> chooseFile(truststoreField));
-        add(truststoreBrowseButton);
+        panel.add(truststoreBrowseButton);
 
-        add(new JLabel("Truststore Password:"));
-        add(truststorePassField);
-        add(new JLabel()); // Empty cell for layout alignment
+        panel.add(new JLabel("Truststore Password:"));
+        panel.add(truststorePassField);
+        panel.add(new JLabel()); // Empty cell for layout alignment
 
-        add(new JLabel("Skip Cert Validation:"));
-        add(skipCertValidationCheckBox);
-        add(new JLabel()); // Empty cell for layout alignment
+        panel.add(new JLabel());
+        panel.add(skipCertValidationCheckBox);
+        panel.add(new JLabel()); // Empty cell for layout alignment
+
+        panel.add(new JLabel()); // Empty cell for layout alignment
 
         // Buttons
         JButton saveButton = new JButton("Save");
         saveButton.setEnabled(false);
         saveButton.addActionListener(new SaveButtonListener());
-        add(saveButton);
+        panel.add(saveButton);
 
-        JButton cancelButton = new JButton("Cancel & Quit");
+        JButton cancelButton = new JButton("Cancel" + (exitOnClose ? " & Quit" : ""));
         cancelButton.addActionListener(e -> {
             dispose();
-            System.exit(1);
+            if (exitOnClose) {
+                System.exit(1);
+            }
         });
-        add(cancelButton);
-        add(new JLabel()); // Empty cell for layout alignment
+        panel.add(cancelButton);
 
-        // Validate configuration of the tle endpoint as a valid URL.
-        tleEndpointField.getDocument().addDocumentListener(
-                RegexDocumentListener.builder()
-                        .button(saveButton)
-                        .textField(tleEndpointField)
-                        .pattern(HTTP_URL_REGEX)
-                        .build());
+//        // Validate configuration of the tle endpoint as a valid URL.
+        InputValidator endpointRegexValidator = RegexInputValidator.builder()
+                .field(tleEndpointField)
+                .pattern(HTTP_URL_REGEX)
+                .build();
+        // Ensure all text inputs are not null/empty
+        InputValidator notNullKeystoreValidator = NotNullInputValidator.builder().field(keystoreField).build();
+        InputValidator notNullKeystorePassValidator = NotNullInputValidator.builder().field(keystorePassField).build();
+        InputValidator notNullTruststoreValidator = NotNullInputValidator.builder().field(truststoreField).build();
+        InputValidator notNullTruststorePassValidator = NotNullInputValidator.builder().field(truststorePassField).build();
+        // Create document listener to disable button if any field is invalid
+        DisableButtonDocumentListener listener = new DisableButtonDocumentListener(saveButton, endpointRegexValidator,
+                notNullKeystoreValidator,
+                notNullKeystorePassValidator,
+                notNullTruststoreValidator,
+                notNullTruststorePassValidator);
+        // Add document listener to all fields
+        Stream.of(tleEndpointField, keystoreField, keystorePassField, truststoreField, truststorePassField).forEach(field -> {
+            field.getDocument().addDocumentListener(listener);
+        });
 
+        // Populate fields with existing configuration
         if (Configuration.isConfigured()) {
             tleEndpointField.setText(Configuration.getTleDataEndpoint());
             if (Configuration.getKeyStoreFile() != null) {
@@ -110,10 +138,26 @@ public class ConfigSetup extends JDialog {
             skipCertValidationCheckBox.setSelected(Configuration.isSkipCertificateValidation());
         }
 
+        // Add panel to dialog
+        add(panel);
+
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
+    /**
+     * Default constructor which will not exit the program on close.
+     */
+    public ConfigSetup() {
+        this(false);
+    }
+
+    /**
+     * Opens a {@link JFileChooser} for selecting the file whose absolute path will be used to populate the provided
+     * target field.
+     *
+     * @param targetField The {@link JTextField} that will be populated with the selected file's absolute path.
+     */
     private void chooseFile(JTextField targetField) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -124,6 +168,10 @@ public class ConfigSetup extends JDialog {
         }
     }
 
+    /**
+     * The {@link ActionListener} used for reacting to the save button being pressed. Stores the entered configuration
+     * properties and closes the dialog.
+     */
     private class SaveButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -138,6 +186,11 @@ public class ConfigSetup extends JDialog {
         }
     }
 
+    /**
+     * Creates a {@link Properties} object representing the entered configuration from the form.
+     *
+     * @return A {@link Properties} object with all the TLE configuration parameters.
+     */
     private Properties getProperties() {
         Properties newConfiguration = new Properties();
         newConfiguration.setProperty(Configuration.PROP_TLE_ENDPOINT, tleEndpointField.getText());
