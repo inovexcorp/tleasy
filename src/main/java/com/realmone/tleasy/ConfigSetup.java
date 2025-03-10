@@ -2,6 +2,11 @@ package com.realmone.tleasy;
 
 import com.realmone.tleasy.ui.RegexDocumentListener;
 
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.Properties;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
@@ -10,11 +15,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.Properties;
 
 public class ConfigSetup extends JDialog {
 
@@ -96,6 +96,19 @@ public class ConfigSetup extends JDialog {
                         .textField(tleEndpointField)
                         .pattern(HTTP_URL_REGEX)
                         .build());
+
+        if (Configuration.isConfigured()) {
+            tleEndpointField.setText(Configuration.getTleDataEndpoint());
+            if (Configuration.getKeyStoreFile() != null) {
+                keystoreField.setText(Configuration.getKeyStoreFile().getAbsolutePath());
+            }
+            keystorePassField.setText(new String(Configuration.getKeystorePassword()));
+            if (Configuration.getTruststoreFile() != null) {
+                truststoreField.setText(Configuration.getTruststoreFile().getAbsolutePath());
+            }
+            truststorePassField.setText(new String(Configuration.getTruststorePassword()));
+            skipCertValidationCheckBox.setSelected(Configuration.isSkipCertificateValidation());
+        }
 
         setLocationRelativeTo(null);
         setVisible(true);
