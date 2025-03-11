@@ -2,11 +2,11 @@ package com.realmone.tleasy.ui;
 
 import lombok.Builder;
 
+import java.util.regex.Pattern;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.util.regex.Pattern;
 
 public class RegexDocumentListener implements DocumentListener {
 
@@ -51,7 +51,7 @@ public class RegexDocumentListener implements DocumentListener {
      * Is the supplied text valid/consistent with the configured pattern
      *
      * @param text The text data from the form
-     * @return Whether or not the text matches the pattern
+     * @return Whether the text matches the pattern
      */
     private boolean valid(String text) {
         boolean valid = false;
