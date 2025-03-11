@@ -1,7 +1,5 @@
 package com.realmone.tleasy;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 
 import java.io.File;
