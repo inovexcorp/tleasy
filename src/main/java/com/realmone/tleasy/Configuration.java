@@ -12,12 +12,13 @@ import java.util.Properties;
 public class Configuration {
 
     private static final File CONFIG_FILE = new File(System.getProperty("user.home"), ".tleasy-config.properties");
+    // TODO: Update this to the correct path from Dan
+    private static final String DEFAULT_CERT = System.getProperty("user.home") + File.pathSeparator + "tleasy"
+            + File.pathSeparator + "src" + File.pathSeparator + "test" + File.pathSeparator + "resources"
+            + File.pathSeparator + "localhost-cert.pem";
 
     public static final String PROP_TLE_ENDPOINT = "tle_data_endpoint";
-    public static final String PROP_KEYSTORE = "keystore";
-    public static final String PROP_KEYSTORE_PASS = PROP_KEYSTORE + "_password";
-    public static final String PROP_TRUSTSTORE = "truststore";
-    public static final String PROP_TRUSTSTORE_PASS = PROP_TRUSTSTORE + "_password";
+    public static final String PROP_CERT = "certificate";
     public static final String PROP_SKIP_CERT_VALIDATE = "skip_cert_validation";
 
     private static Properties properties = new Properties();
@@ -41,22 +42,9 @@ public class Configuration {
         return properties.getProperty(PROP_TLE_ENDPOINT, "");
     }
 
-    public static File getKeyStoreFile() {
-        String path = properties.getProperty(PROP_KEYSTORE, "");
+    public static File getCertFile() {
+        String path = properties.getProperty(PROP_CERT, "");
         return path.isEmpty() ? null : new File(path);
-    }
-
-    public static char[] getKeystorePassword() {
-        return properties.getProperty(PROP_KEYSTORE_PASS, "").toCharArray();
-    }
-
-    public static File getTruststoreFile() {
-        String path = properties.getProperty(PROP_TRUSTSTORE, "");
-        return path.isEmpty() ? null : new File(path);
-    }
-
-    public static char[] getTruststorePassword() {
-        return properties.getProperty(PROP_TRUSTSTORE_PASS, "").toCharArray();
     }
 
     public static boolean isSkipCertificateValidation() {
@@ -70,6 +58,8 @@ public class Configuration {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        } else {
+            properties.setProperty(PROP_CERT, DEFAULT_CERT);
         }
     }
 }

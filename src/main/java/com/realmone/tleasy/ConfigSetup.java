@@ -19,7 +19,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 public class ConfigSetup extends JDialog {
@@ -31,30 +30,24 @@ public class ConfigSetup extends JDialog {
                     "(/[^\\s]*)?$";                        // Optional path, query params, fragment
 
     private final JTextField tleEndpointField;
-    private final JTextField keystoreField;
-    private final JPasswordField keystorePassField;
-    private final JTextField truststoreField;
-    private final JPasswordField truststorePassField;
+    private final JTextField certField;
     private final JCheckBox skipCertValidationCheckBox;
 
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
         setModal(true);
-        setSize(600, 300);
+        setSize(600, 200);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Panel for Styling
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(7, 3)); // Adjusted to accommodate file chooser buttons
+        panel.setLayout(new GridLayout(4, 3)); // Adjusted to accommodate file chooser buttons
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Adds padding around the form
 
 
         // Fields for input
         tleEndpointField = new JTextField();
-        keystoreField = new JTextField();
-        keystorePassField = new JPasswordField();
-        truststoreField = new JTextField();
-        truststorePassField = new JPasswordField();
+        certField = new JTextField();
         skipCertValidationCheckBox = new JCheckBox("Skip SSL Certificate Validation");
 
         // Add labels and fields
@@ -62,25 +55,11 @@ public class ConfigSetup extends JDialog {
         panel.add(tleEndpointField);
         panel.add(new JLabel()); // Empty cell for layout alignment
 
-        panel.add(new JLabel("Keystore File Path:"));
-        panel.add(keystoreField);
-        JButton keystoreBrowseButton = new JButton("Browse...");
-        keystoreBrowseButton.addActionListener(e -> chooseFile(keystoreField));
-        panel.add(keystoreBrowseButton);
-
-        panel.add(new JLabel("Keystore Password:"));
-        panel.add(keystorePassField);
-        panel.add(new JLabel()); // Empty cell for layout alignment
-
-        panel.add(new JLabel("Truststore File Path:"));
-        panel.add(truststoreField);
-        JButton truststoreBrowseButton = new JButton("Browse...");
-        truststoreBrowseButton.addActionListener(e -> chooseFile(truststoreField));
-        panel.add(truststoreBrowseButton);
-
-        panel.add(new JLabel("Truststore Password:"));
-        panel.add(truststorePassField);
-        panel.add(new JLabel()); // Empty cell for layout alignment
+        panel.add(new JLabel("Certificate File Path:"));
+        panel.add(certField);
+        JButton certBrowseButton = new JButton("Browse...");
+        certBrowseButton.addActionListener(e -> chooseFile(certField));
+        panel.add(certBrowseButton);
 
         panel.add(new JLabel());
         panel.add(skipCertValidationCheckBox);
@@ -103,38 +82,27 @@ public class ConfigSetup extends JDialog {
         });
         panel.add(cancelButton);
 
-//        // Validate configuration of the tle endpoint as a valid URL.
+        // Validate configuration of the tle endpoint as a valid URL.
         InputValidator endpointRegexValidator = RegexInputValidator.builder()
                 .field(tleEndpointField)
                 .pattern(HTTP_URL_REGEX)
                 .build();
         // Ensure all text inputs are not null/empty
-        InputValidator notNullKeystoreValidator = NotNullInputValidator.builder().field(keystoreField).build();
-        InputValidator notNullKeystorePassValidator = NotNullInputValidator.builder().field(keystorePassField).build();
-        InputValidator notNullTruststoreValidator = NotNullInputValidator.builder().field(truststoreField).build();
-        InputValidator notNullTruststorePassValidator = NotNullInputValidator.builder().field(truststorePassField).build();
+        InputValidator notNullCertValidator = NotNullInputValidator.builder().field(certField).build();
         // Create document listener to disable button if any field is invalid
         DisableButtonDocumentListener listener = new DisableButtonDocumentListener(saveButton, endpointRegexValidator,
-                notNullKeystoreValidator,
-                notNullKeystorePassValidator,
-                notNullTruststoreValidator,
-                notNullTruststorePassValidator);
+                notNullCertValidator);
         // Add document listener to all fields
-        Stream.of(tleEndpointField, keystoreField, keystorePassField, truststoreField, truststorePassField).forEach(field -> {
+        Stream.of(tleEndpointField, certField).forEach(field -> {
             field.getDocument().addDocumentListener(listener);
         });
 
         // Populate fields with existing configuration
         if (Configuration.isConfigured()) {
             tleEndpointField.setText(Configuration.getTleDataEndpoint());
-            if (Configuration.getKeyStoreFile() != null) {
-                keystoreField.setText(Configuration.getKeyStoreFile().getAbsolutePath());
+            if (Configuration.getCertFile() != null) {
+                certField.setText(Configuration.getCertFile().getAbsolutePath());
             }
-            keystorePassField.setText(new String(Configuration.getKeystorePassword()));
-            if (Configuration.getTruststoreFile() != null) {
-                truststoreField.setText(Configuration.getTruststoreFile().getAbsolutePath());
-            }
-            truststorePassField.setText(new String(Configuration.getTruststorePassword()));
             skipCertValidationCheckBox.setSelected(Configuration.isSkipCertificateValidation());
         }
 
@@ -194,10 +162,7 @@ public class ConfigSetup extends JDialog {
     private Properties getProperties() {
         Properties newConfiguration = new Properties();
         newConfiguration.setProperty(Configuration.PROP_TLE_ENDPOINT, tleEndpointField.getText());
-        newConfiguration.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
-        newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
-        newConfiguration.setProperty(Configuration.PROP_TRUSTSTORE, truststoreField.getText());
-        newConfiguration.setProperty(Configuration.PROP_TRUSTSTORE_PASS, new String(truststorePassField.getPassword()));
+        newConfiguration.setProperty(Configuration.PROP_CERT, certField.getText());
         newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
         return newConfiguration;
     }

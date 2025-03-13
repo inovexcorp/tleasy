@@ -3,6 +3,19 @@ package com.realmone.tleasy;
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.net.ssl.SSLException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -17,16 +30,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.FlowLayout;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TLEasy extends JFrame {
 
@@ -49,10 +52,9 @@ public class TLEasy extends JFrame {
     }
 
     public TLEasy() {
-        // TODO: Make prettier somehow
         // Frame setup
         setTitle("TLEasy");
-        setSize(300, 150);
+        setSize(300, 200);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new FlowLayout());
 
@@ -82,9 +84,12 @@ public class TLEasy extends JFrame {
         statusLabel.setVisible(true);
 
         // Add components to frame
-        // TODO: Add help text for valid inputs
         add(new JLabel("Enter 5-digit ID(s) or range: "));
         add(idField);
+        JLabel helpLabel = new JLabel("Separate with commas or hyphenate for a range.");
+        helpLabel.setForeground(Color.GRAY);
+        helpLabel.setFont(helpLabel.getFont().deriveFont(Font.ITALIC, 11f));
+        add(helpLabel);
         add(downloadButton);
         add(progressBar);
         add(statusLabel);
@@ -121,10 +126,7 @@ public class TLEasy extends JFrame {
     private static void setupClient() throws IOException {
         client = SimpleTleClient.builder()
                 .tleDataEndpoint(Configuration.getTleDataEndpoint())
-                .keystoreFile(Configuration.getKeyStoreFile())
-                .keystorePassword(Configuration.getKeystorePassword())
-                .truststoreFile(Configuration.getTruststoreFile())
-                .truststorePassword(Configuration.getTruststorePassword())
+                .certFile(Configuration.getCertFile())
                 .skipCertValidation(Configuration.isSkipCertificateValidation())
                 .build();
     }
@@ -136,10 +138,13 @@ public class TLEasy extends JFrame {
      * @param alreadyConfiguredCheck Whether to check if the configuration is set and not open the window if so
      */
     private static void configureAndSetupClient(boolean alreadyConfiguredCheck, boolean exitOnClose) {
-        boolean exceptionThrown;
+        boolean exceptionThrown = false;
         do {
             try {
-                if (!alreadyConfiguredCheck || !Configuration.isConfigured()) {
+                if (Configuration.getCertFile() == null || !Configuration.getCertFile().exists()) {
+                    JOptionPane.showMessageDialog(null, "Certificate could not be found.\nPlease update your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
+                    new ConfigSetup(exitOnClose);
+                } else if (exceptionThrown || !alreadyConfiguredCheck || !Configuration.isConfigured()) {
                     new ConfigSetup(exitOnClose);
                 }
                 setupClient();
@@ -185,6 +190,30 @@ public class TLEasy extends JFrame {
                     return null;
                 }
                 System.out.println("Starting download and streaming to file");
+                try (InputStream data = client.fetchTle();
+                     FileOutputStream output = new FileOutputStream(saveFile.get())) {
+                    return filter.filter(data, output);
+                } catch (IOException | InterruptedException ex) {
+                    System.err.println("Exception thrown when pulling data: " + ex.getMessage());
+                    ex.printStackTrace();
+                    if (ex instanceof SSLException
+                            && (ex.getMessage().contains("trustAnchors parameter must be non-empty")
+                                || ex.getMessage().contains("PKIX")
+                                || ex.getMessage().contains("Self-signed or unknown CA"))) {
+                        int result = JOptionPane.showConfirmDialog(null, "Do you want to trust this server's certificate?",
+                                "Trust Certificates", JOptionPane.YES_NO_OPTION,
+                                JOptionPane.QUESTION_MESSAGE);
+                        if (result == JOptionPane.YES_OPTION) {
+                            System.out.println("Trusting server certificates");
+                            client.trustCerts();
+                        } else {
+                            throw ex;
+                        }
+                    } else {
+                        throw ex;
+                    }
+                }
+                // Trying again after trusting certs
                 try (InputStream data = client.fetchTle();
                      FileOutputStream output = new FileOutputStream(saveFile.get())) {
                     return filter.filter(data, output);
