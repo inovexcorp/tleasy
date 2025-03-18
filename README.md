@@ -24,6 +24,4 @@ When the TLEasy configuration window appears, you can enter the following values
 - **TLE Data Endpoint:** `https://localhost:8443/secure/download`
 - **Keystore File Path:** `/path/to/tleasy/src/test/resources/keywstore.p12`
 - **Keystore Password:** `realm1p@ss`
-- **Truststore File Path:** `/path/to/tleasy/src/test/resources/truststore.p12`
-- **Truststore Password:** `realm1p@ss`
 - **Skip Cert Validation:** `true`

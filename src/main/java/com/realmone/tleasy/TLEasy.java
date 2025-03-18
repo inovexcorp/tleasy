@@ -126,7 +126,8 @@ public class TLEasy extends JFrame {
     private static void setupClient() throws IOException {
         client = SimpleTleClient.builder()
                 .tleDataEndpoint(Configuration.getTleDataEndpoint())
-                .certFile(Configuration.getCertFile())
+                .keystoreFile(Configuration.getKeyStoreFile())
+                .keystorePassword(Configuration.getKeystorePassword())
                 .skipCertValidation(Configuration.isSkipCertificateValidation())
                 .build();
     }
@@ -141,8 +142,8 @@ public class TLEasy extends JFrame {
         boolean exceptionThrown = false;
         do {
             try {
-                if (Configuration.getCertFile() == null || !Configuration.getCertFile().exists()) {
-                    JOptionPane.showMessageDialog(null, "Certificate could not be found.\nPlease update your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
+                if (Configuration.getKeyStoreFile() == null || !Configuration.getKeyStoreFile().exists()) {
+                    JOptionPane.showMessageDialog(null, "Keystore could not be found.\nPlease update your configuration and save again.", "Error", JOptionPane.ERROR_MESSAGE);
                     new ConfigSetup(exitOnClose);
                 } else if (exceptionThrown || !alreadyConfiguredCheck || !Configuration.isConfigured()) {
                     new ConfigSetup(exitOnClose);

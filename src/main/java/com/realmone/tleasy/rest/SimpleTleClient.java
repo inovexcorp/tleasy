@@ -4,18 +4,16 @@ import com.realmone.tleasy.TleClient;
 import lombok.Builder;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.UUID;
@@ -29,22 +27,23 @@ import javax.net.ssl.X509TrustManager;
 public class SimpleTleClient implements TleClient {
 
     private static final String PKCS12 = "PKCS12";
-    private static final String X509 = "X.509";
-    private static final String PW = "realm1p@ss";
     private static final String TRUSTSTORE = "truststore.p12";
-    private static final String KEYSTORE = "keystore.p12";
+    private static final String TRUSTSTORE_PW = "realm1p@ss";
     private final String tleDataEndpoint;
-    private final File certFile;
+    private final File keystoreFile;
+    private final char[] keystorePassword;
     private final boolean skipCertValidation;
     private SSLContext sslContext;
 
     @Builder
-    private SimpleTleClient(String tleDataEndpoint, File certFile, boolean skipCertValidation)
+    private SimpleTleClient(String tleDataEndpoint, File keystoreFile, char[] keystorePassword,
+                            boolean skipCertValidation)
             throws IOException {
         this.tleDataEndpoint = tleDataEndpoint;
-        this.certFile = certFile;
+        this.keystoreFile = keystoreFile;
+        this.keystorePassword = keystorePassword;
         this.skipCertValidation = skipCertValidation;
-        this.sslContext = createSecureSslContext(certFile, skipCertValidation);
+        this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, skipCertValidation);
     }
 
     /**
@@ -88,11 +87,11 @@ public class SimpleTleClient implements TleClient {
 
             // Trust everything so we can grab the certs without it failing
             try {
-                SSLContext trustAllSSLContext = getTrustAllSSLContext(certFile);
+                SSLContext trustAllSSLContext = getTrustAllSSLContext(keystoreFile, keystorePassword);
                 httpsConnection.setSSLSocketFactory(trustAllSSLContext.getSocketFactory());
                 httpsConnection.setHostnameVerifier((hostname, session) -> true);
                 connection.connect();
-                this.sslContext = createSecureSslContext(certFile, skipCertValidation,
+                this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, skipCertValidation,
                         httpsConnection.getServerCertificates());
             } catch (GeneralSecurityException ex) {
                 throw new RuntimeException(ex);
@@ -102,43 +101,46 @@ public class SimpleTleClient implements TleClient {
     }
 
     /**
-     * Creates an {@link SSLContext} for secure communication, with an option to skip certificate validation. Loads the
-     * provided {@link File} containing a X.509 certificate into the embedded {@link KeyStore}.
+     * Creates an {@link SSLContext} for secure communication, with an option to skip certificate validation. Uses the
+     * provided keystore {@link File} with the provided password.
      *
-     * @param certFile           The certificate file to load into the keystore
+     * @param keystoreFile       The client keystore file
+     * @param keystorePassword   The password for the keystore
      * @param skipCertValidation Whether to disable SSL certificate validation
      * @return Configured SSLContext
      * @throws IOException If any security-related issues occur
      */
-    private static SSLContext createSecureSslContext(File certFile, boolean skipCertValidation) throws IOException {
-        return createSecureSslContext(certFile, skipCertValidation, new Certificate[]{});
+    private static SSLContext createSecureSslContext(File keystoreFile, char[] keystorePassword,
+                                                     boolean skipCertValidation) throws IOException {
+        return createSecureSslContext(keystoreFile, keystorePassword, skipCertValidation, new Certificate[]{});
     }
 
     /**
-     * Creates an {@link SSLContext} for secure communication, with an option to skip certificate validation. Loads the
-     * provided {@link File} containing a X.509 certificate into the embedded {@link KeyStore}. Also loads the provided
-     * server certificates into the embedded truststore.
+     * Creates an {@link SSLContext} for secure communication, with an option to skip certificate validation. Uses the
+     * provided keystore {@link File} with the provided password. Also loads the provided server certificates into the
+     * embedded truststore.
      *
-     * @param certFile           The certificate file to load into the keystore
+     * @param keystoreFile       The client keystore file
+     * @param keystorePassword   The password for the keystore
      * @param skipCertValidation Whether to disable SSL certificate validation
      * @param serverCerts        The list of certificates to load into the truststore
      * @return Configured SSLContext
      * @throws IOException If any security-related issues occur
      */
-    private static SSLContext createSecureSslContext(File certFile, boolean skipCertValidation,
+    private static SSLContext createSecureSslContext(File keystoreFile, char[] keystorePassword, boolean skipCertValidation,
                                                      Certificate[] serverCerts) throws IOException {
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
 
             // Load client keystore
-            KeyManagerFactory kmf = getKeyManagerFactory(certFile);
+            KeyManagerFactory kmf = getKeyManagerFactory(keystoreFile, keystorePassword);
 
             TrustManagerFactory tmf = null;
             if (!skipCertValidation) {
                 // Load truststore
                 KeyStore trustStore = KeyStore.getInstance(PKCS12);
                 try (InputStream trustStoreStream = SimpleTleClient.class.getResourceAsStream(TRUSTSTORE)) {
-                    trustStore.load(trustStoreStream, PW.toCharArray());
+                    trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
                 }
                 // Load in server certs to trust
                 for (Certificate serverCert : serverCerts) {
@@ -163,22 +165,6 @@ public class SimpleTleClient implements TleClient {
             return sslContext;
         } catch (GeneralSecurityException e) {
             throw new IOException("Issue managing TLS certificates to make TLE file request", e);
-        }
-    }
-
-    /**
-     * Creates a {@link Certificate} from the provided {@link File}. Assumes the certificate is in X.509 format. Also
-     * assumes that the file exists.
-     *
-     * @param certFile A {@link File} containing a X.509 certificate
-     * @return The {@link Certificate} generated from the {@link File}
-     * @throws CertificateException If an error occurs generating the certificate
-     * @throws IOException If an error occurs reading the file
-     */
-    private static Certificate getCertificateFromFile(File certFile) throws CertificateException, IOException {
-        CertificateFactory cf = CertificateFactory.getInstance(X509);
-        try (FileInputStream certIs = new FileInputStream(certFile)) {
-            return cf.generateCertificate(certIs);
         }
     }
 
@@ -219,41 +205,43 @@ public class SimpleTleClient implements TleClient {
     }
 
     /**
-     * Creates a {@link KeyManagerFactory} with the embedded {@link KeyStore} that is loaded with the provided
-     * certificate {@link File} if not already present for use in creating an {@link SSLContext}.
+     * Creates a {@link KeyManagerFactory} with the provided {@link KeyStore} with the provided password for use in
+     * creating an {@link SSLContext}.
      *
-     * @param certFile A X.509 certificate file
+     * @param keystoreFile       The client keystore file
+     * @param keystorePassword   The password for the keystore
      * @return A {@link KeyManagerFactory} to use to create an {@link SSLContext}
      * @throws GeneralSecurityException If an issue occurs creating and loading the keystore
-     * @throws IOException If an issue occurs reading the certificate file
+     * @throws IOException If an issue occurs reading the keystore file
      */
-    private static KeyManagerFactory getKeyManagerFactory(File certFile) throws GeneralSecurityException, IOException {
+    private static KeyManagerFactory getKeyManagerFactory(File keystoreFile, char[] keystorePassword)
+            throws GeneralSecurityException, IOException {
         // Load client keystore
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         KeyStore keyStore = KeyStore.getInstance(PKCS12);
-        try (InputStream keyStoreStream = SimpleTleClient.class.getResourceAsStream("/" + KEYSTORE)) {
-            keyStore.load(keyStoreStream, PW.toCharArray());
+        try (InputStream keyStoreStream = Files.newInputStream(keystoreFile.toPath())) {
+            keyStore.load(keyStoreStream, keystorePassword);
         }
-        Certificate cert = getCertificateFromFile(certFile);
-        loadCertIfMissing(cert, keyStore);
-        kmf.init(keyStore, PW.toCharArray());
+        kmf.init(keyStore, keystorePassword);
         return kmf;
     }
 
     /**
      * Creates an {@link SSLContext} that accepts all certificates (instead of the embedded truststore) and uses the
-     * embedded keystore loaded with the provided X.509 certificate {@link File}.
+     * provided keystore and password.
      *
-     * @param certFile A X.509 certificate file
+     * @param keystoreFile       The client keystore file
+     * @param keystorePassword   The password for the keystore
      * @return An {@link SSLContext} to use to make HTTPS connections
      * @throws GeneralSecurityException If an issue occurs creating and loading the keystore and truststore
-     * @throws IOException If an issue occurs reading the certificate file
+     * @throws IOException If an issue occurs reading the keystore file
      */
-    private static SSLContext getTrustAllSSLContext(File certFile) throws GeneralSecurityException, IOException {
+    private static SSLContext getTrustAllSSLContext(File keystoreFile, char[] keystorePassword)
+            throws GeneralSecurityException, IOException {
         SSLContext sslContext = SSLContext.getInstance("TLS");
 
         // Load client keystore
-        KeyManagerFactory kmf = getKeyManagerFactory(certFile);
+        KeyManagerFactory kmf = getKeyManagerFactory(keystoreFile, keystorePassword);
 
         // Get Trust All Manager
         TrustManager[] trustManagers = new TrustManager[]{getTrustAllManager()};

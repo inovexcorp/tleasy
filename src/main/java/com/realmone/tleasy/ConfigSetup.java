@@ -19,6 +19,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 public class ConfigSetup extends JDialog {
@@ -30,7 +31,8 @@ public class ConfigSetup extends JDialog {
                     "(/[^\\s]*)?$";                        // Optional path, query params, fragment
 
     private final JTextField tleEndpointField;
-    private final JTextField certField;
+    private final JTextField keystoreField;
+    private final JPasswordField keystorePassField;
     private final JCheckBox skipCertValidationCheckBox;
 
     public ConfigSetup(boolean exitOnClose) {
@@ -41,13 +43,14 @@ public class ConfigSetup extends JDialog {
 
         // Panel for Styling
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(4, 3)); // Adjusted to accommodate file chooser buttons
+        panel.setLayout(new GridLayout(5, 3)); // Adjusted to accommodate file chooser buttons
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Adds padding around the form
 
 
         // Fields for input
         tleEndpointField = new JTextField();
-        certField = new JTextField();
+        keystoreField = new JTextField();
+        keystorePassField = new JPasswordField();
         skipCertValidationCheckBox = new JCheckBox("Skip SSL Certificate Validation");
 
         // Add labels and fields
@@ -55,11 +58,15 @@ public class ConfigSetup extends JDialog {
         panel.add(tleEndpointField);
         panel.add(new JLabel()); // Empty cell for layout alignment
 
-        panel.add(new JLabel("Certificate File Path:"));
-        panel.add(certField);
-        JButton certBrowseButton = new JButton("Browse...");
-        certBrowseButton.addActionListener(e -> chooseFile(certField));
-        panel.add(certBrowseButton);
+        panel.add(new JLabel("Keystore File Path:"));
+        panel.add(keystoreField);
+        JButton keystoreBrowseButton = new JButton("Browse...");
+        keystoreBrowseButton.addActionListener(e -> chooseFile(keystoreField));
+        panel.add(keystoreBrowseButton);
+
+        panel.add(new JLabel("Keystore Password:"));
+        panel.add(keystorePassField);
+        panel.add(new JLabel()); // Empty cell for layout alignment
 
         panel.add(new JLabel());
         panel.add(skipCertValidationCheckBox);
@@ -88,21 +95,23 @@ public class ConfigSetup extends JDialog {
                 .pattern(HTTP_URL_REGEX)
                 .build();
         // Ensure all text inputs are not null/empty
-        InputValidator notNullCertValidator = NotNullInputValidator.builder().field(certField).build();
+        InputValidator notNullKeystoreValidator = NotNullInputValidator.builder().field(keystoreField).build();
+        InputValidator notNullKeystorePassValidator = NotNullInputValidator.builder().field(keystorePassField).build();
         // Create document listener to disable button if any field is invalid
         DisableButtonDocumentListener listener = new DisableButtonDocumentListener(saveButton, endpointRegexValidator,
-                notNullCertValidator);
+                notNullKeystoreValidator, notNullKeystorePassValidator);
         // Add document listener to all fields
-        Stream.of(tleEndpointField, certField).forEach(field -> {
+        Stream.of(tleEndpointField, keystoreField, keystorePassField).forEach(field -> {
             field.getDocument().addDocumentListener(listener);
         });
 
         // Populate fields with existing configuration
+        if (Configuration.getKeyStoreFile() != null) {
+            keystoreField.setText(Configuration.getKeyStoreFile().getAbsolutePath());
+        }
         if (Configuration.isConfigured()) {
             tleEndpointField.setText(Configuration.getTleDataEndpoint());
-            if (Configuration.getCertFile() != null) {
-                certField.setText(Configuration.getCertFile().getAbsolutePath());
-            }
+            keystorePassField.setText(new String(Configuration.getKeystorePassword()));
             skipCertValidationCheckBox.setSelected(Configuration.isSkipCertificateValidation());
         }
 
@@ -162,7 +171,8 @@ public class ConfigSetup extends JDialog {
     private Properties getProperties() {
         Properties newConfiguration = new Properties();
         newConfiguration.setProperty(Configuration.PROP_TLE_ENDPOINT, tleEndpointField.getText());
-        newConfiguration.setProperty(Configuration.PROP_CERT, certField.getText());
+        newConfiguration.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
+        newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
         newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
         return newConfiguration;
     }

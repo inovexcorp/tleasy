@@ -13,12 +13,13 @@ public class Configuration {
 
     private static final File CONFIG_FILE = new File(System.getProperty("user.home"), ".tleasy-config.properties");
     // TODO: Update this to the correct path from Dan
-    private static final String DEFAULT_CERT = System.getProperty("user.home") + File.pathSeparator + "tleasy"
-            + File.pathSeparator + "src" + File.pathSeparator + "test" + File.pathSeparator + "resources"
-            + File.pathSeparator + "localhost-cert.pem";
+    private static final String DEFAULT_KEYSTORE = System.getProperty("user.home") + File.separator + "tleasy"
+            + File.separator + "src" + File.separator + "test" + File.separator + "resources"
+            + File.separator + "keystore.p12";
 
     public static final String PROP_TLE_ENDPOINT = "tle_data_endpoint";
-    public static final String PROP_CERT = "certificate";
+    public static final String PROP_KEYSTORE = "keystore";
+    public static final String PROP_KEYSTORE_PASS = PROP_KEYSTORE + "_password";
     public static final String PROP_SKIP_CERT_VALIDATE = "skip_cert_validation";
 
     private static Properties properties = new Properties();
@@ -42,9 +43,12 @@ public class Configuration {
         return properties.getProperty(PROP_TLE_ENDPOINT, "");
     }
 
-    public static File getCertFile() {
-        String path = properties.getProperty(PROP_CERT, "");
+    public static File getKeyStoreFile() {
+        String path = properties.getProperty(PROP_KEYSTORE, "");
         return path.isEmpty() ? null : new File(path);
+    }
+    public static char[] getKeystorePassword() {
+        return properties.getProperty(PROP_KEYSTORE_PASS, "").toCharArray();
     }
 
     public static boolean isSkipCertificateValidation() {
@@ -59,7 +63,7 @@ public class Configuration {
                 e.printStackTrace();
             }
         } else {
-            properties.setProperty(PROP_CERT, DEFAULT_CERT);
+            properties.setProperty(PROP_KEYSTORE, DEFAULT_KEYSTORE);
         }
     }
 }
