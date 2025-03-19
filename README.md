@@ -22,8 +22,8 @@ The separate tl-easy-server project will create a mock endpoint protected with S
 When the TLEasy configuration window appears, you can enter the following values to connect to the mock endpoint for testing.
 
 - **TLE Data Endpoint:** `https://localhost:8443/secure/download`
-- **Keystore File Path:** `/path/to/tleasy/src/test/resources/keywstore.p12`
-- **Keystore Password:** `realm1p@ss` -- bespoke one-off password for the test, self-signed keystore
+- **Keystore File Path:** `/path/to/tleasy/src/test/resources/keystore.p12`
+- **Keystore Password:** `changeit` -- bespoke one-off password for the test, self-signed keystore
 - **Truststore File Path:** `/path/to/tleasy/src/test/resources/truststore.p12`
-- **Truststore Password:** `realm1p@ss` -- bespoke one-off password for the test self-signed truststore
+- **Truststore Password:** `changit` -- bespoke one-off password for the test self-signed truststore
 - **Skip Cert Validation:** `true`
