@@ -3,6 +3,12 @@ package com.realmone.tleasy.rest;
 import com.realmone.tleasy.TleClient;
 import lombok.Builder;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,12 +23,6 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.UUID;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 
 public class SimpleTleClient implements TleClient {
 
@@ -54,8 +54,9 @@ public class SimpleTleClient implements TleClient {
      */
     @Override
     public InputStream fetchTle() throws IOException {
-        URL url = URI.create(tleDataEndpoint).toURL();
+        URL url = URI.create(tleDataEndpoint).toURL();ly
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        HttpURLConnection.setFollowRedirects(true);
 
         if (connection instanceof HttpsURLConnection) {
             HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
@@ -70,7 +71,7 @@ public class SimpleTleClient implements TleClient {
         connection.setDoInput(true);
 
         int responseCode = connection.getResponseCode();
-        // TODO - consider redirect following
+        // Redirects are now handled automatically
         if (responseCode != HttpURLConnection.HTTP_OK) {
             throw new IOException("Remote server did not respond with success: " + responseCode);
         }
