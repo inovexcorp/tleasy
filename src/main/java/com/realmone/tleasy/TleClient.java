@@ -17,4 +17,11 @@ public interface TleClient {
      * @throws InterruptedException If there is an issue on the client side making the request
      */
     InputStream fetchTle() throws IOException, InterruptedException;
+
+    /**
+     * Runs through the client's endpoint's server certificates and adds all to the underlying truststore.
+     *
+     * @throws IOException If an issue occurs making the connection to the remote server
+     */
+    void trustCerts() throws IOException;
 }
