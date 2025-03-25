@@ -54,7 +54,7 @@ public class SimpleTleClient implements TleClient {
      */
     @Override
     public InputStream fetchTle() throws IOException {
-        URL url = URI.create(tleDataEndpoint).toURL();ly
+        URL url = URI.create(tleDataEndpoint).toURL();
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         HttpURLConnection.setFollowRedirects(true);
 
