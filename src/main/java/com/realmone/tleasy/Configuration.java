@@ -21,6 +21,7 @@ public class Configuration {
     public static final String PROP_KEYSTORE = "keystore";
     public static final String PROP_KEYSTORE_PASS = PROP_KEYSTORE + "_password";
     public static final String PROP_SKIP_CERT_VALIDATE = "skip_cert_validation";
+    public static final String PROP_DARK_THEME = "dark_theme";
 
     private static Properties properties = new Properties();
 
@@ -53,6 +54,10 @@ public class Configuration {
 
     public static boolean isSkipCertificateValidation() {
         return Boolean.parseBoolean(properties.getProperty(PROP_SKIP_CERT_VALIDATE, "false"));
+    }
+
+    public static boolean isDarkTheme() {
+        return Boolean.parseBoolean(properties.getProperty(PROP_DARK_THEME, "false"));
     }
 
     private static void load() {

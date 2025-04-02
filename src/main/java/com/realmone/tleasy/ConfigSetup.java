@@ -34,6 +34,7 @@ public class ConfigSetup extends JDialog {
     private final JTextField keystoreField;
     private final JPasswordField keystorePassField;
     private final JCheckBox skipCertValidationCheckBox;
+    private JCheckBox darkThemeCheckBox;
 
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
@@ -71,6 +72,11 @@ public class ConfigSetup extends JDialog {
         panel.add(new JLabel());
         panel.add(skipCertValidationCheckBox);
         panel.add(new JLabel()); // Empty cell for layout alignment
+
+        darkThemeCheckBox = new JCheckBox("Enable Dark Theme");
+        darkThemeCheckBox.setSelected(Configuration.isDarkTheme());
+        panel.add(new JLabel("Dark Theme:"));
+        panel.add(darkThemeCheckBox);
 
         panel.add(new JLabel()); // Empty cell for layout alignment
 
@@ -174,6 +180,7 @@ public class ConfigSetup extends JDialog {
         newConfiguration.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
         newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
         newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
+        newConfiguration.setProperty(Configuration.PROP_DARK_THEME, String.valueOf(darkThemeCheckBox.isSelected()));
         return newConfiguration;
     }
 }

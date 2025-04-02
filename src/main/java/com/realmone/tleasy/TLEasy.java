@@ -116,6 +116,38 @@ public class TLEasy extends JFrame {
             statusLabel.setText("Downloading...");
             performDownload();
         });
+        if (Configuration.isDarkTheme()) {
+            applyDarkTheme();
+        }
+    }
+
+    private void applyDarkTheme() {
+        // Set the background for the frame's content pane
+        getContentPane().setBackground(Color.DARK_GRAY);
+
+        // Update child components: labels, text fields, buttons, and progress bar
+        for (java.awt.Component comp : getContentPane().getComponents()) {
+            if (comp instanceof JLabel) {
+                comp.setForeground(Color.WHITE);
+            } else if (comp instanceof JTextField) {
+                comp.setBackground(Color.GRAY);
+                comp.setForeground(Color.WHITE);
+            } else if (comp instanceof JButton) {
+                comp.setBackground(Color.GRAY);
+                comp.setForeground(Color.WHITE);
+            } else if (comp instanceof JProgressBar) {
+                comp.setBackground(Color.GRAY);
+                comp.setForeground(Color.WHITE);
+            }
+        }
+
+        // Update menu bar and its items
+        menuBar.setBackground(Color.DARK_GRAY);
+        menuBar.setForeground(Color.WHITE);
+        advMenu.setBackground(Color.DARK_GRAY);
+        advMenu.setForeground(Color.WHITE);
+        configurationItem.setBackground(Color.GRAY);
+        configurationItem.setForeground(Color.WHITE);
     }
 
     /**
