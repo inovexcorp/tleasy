@@ -3,18 +3,6 @@ package com.realmone.tleasy;
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 
-import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -30,6 +18,17 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TLEasy extends JFrame {
 
@@ -84,9 +83,9 @@ public class TLEasy extends JFrame {
         statusLabel.setVisible(true);
 
         // Add components to frame
-        add(new JLabel("Enter 5-digit ID(s) or range: "));
+        add(new JLabel("Enter list of 5-digit ID(s) and/or range: "));
         add(idField);
-        JLabel helpLabel = new JLabel("Separate with commas or hyphenate for a range.");
+        JLabel helpLabel = new JLabel("Separate with commas and hyphenate for a range.");
         helpLabel.setForeground(Color.GRAY);
         helpLabel.setFont(helpLabel.getFont().deriveFont(Font.ITALIC, 11f));
         add(helpLabel);
@@ -199,8 +198,8 @@ public class TLEasy extends JFrame {
                     ex.printStackTrace();
                     if (ex instanceof SSLException
                             && (ex.getMessage().contains("trustAnchors parameter must be non-empty")
-                                || ex.getMessage().contains("PKIX")
-                                || ex.getMessage().contains("Self-signed or unknown CA"))) {
+                            || ex.getMessage().contains("PKIX")
+                            || ex.getMessage().contains("Self-signed or unknown CA"))) {
                         int result = JOptionPane.showConfirmDialog(null, "Do you want to trust this server's certificate?",
                                 "Trust Certificates", JOptionPane.YES_NO_OPTION,
                                 JOptionPane.QUESTION_MESSAGE);
@@ -271,35 +270,30 @@ public class TLEasy extends JFrame {
      * @return A {@link Set} of ID Strings to filter the TLE data by
      */
     private Set<String> getIds() {
-        String input = idField.getText();
-        if (isSingleId(input)) {
-            return Collections.singleton(input);
-        }
-
-        if (isIdSet(input)) {
-            return setFromCsvRow(input);
-        }
-
-        if (isIdRange(input)) {
-            String[] range = input.split("\\s*-\\s*");
-            int start = Integer.parseInt(range[0]);
-            int end = Integer.parseInt(range[1]);
-            return getNumbersBetween(start, end).stream().map(Object::toString).collect(Collectors.toSet());
-        }
-
-        return Collections.emptySet();
-    }
-
-    /**
-     * Turns a comma separated string into a set of trimmed strings.
-     *
-     * @param commaSeparateString A string of comma separated values.
-     * @return A {@link Set} of {@link String}s
-     */
-    private static Set<String> setFromCsvRow(String commaSeparateString) {
+        String input = idField.getText().trim();
         Set<String> result = new HashSet<>();
-        for (String part : commaSeparateString.split(",")) {
-            result.add(part.trim());
+        // Split input by commas to allow mixed single IDs and ranges
+        String[] parts = input.split("\\s*,\\s*");
+        for (String part : parts) {
+            // If the part is a 5 digit identifier
+            if (part.matches("\\d{5}")) {
+                result.add(part);
+            }
+            // Else if the part is a range specification
+            else if (part.matches("\\d{5}\\s*-\\s*\\d{5}")) {
+                // Grab the start and end part
+                String[] rangeParts = part.split("\\s*-\\s*");
+                int start = Integer.parseInt(rangeParts[0]);
+                int end = Integer.parseInt(rangeParts[1]);
+                // Simple validation to ensure the first number is smaller than the second...
+                if (start > end) {
+                    throw new IllegalArgumentException("Range must be in ascending order.");
+                }
+                // Add all the target numbers in the specified range
+                result.addAll(getNumbersBetween(start, end).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toSet()));
+            }
         }
         return result;
     }
@@ -324,36 +318,6 @@ public class TLEasy extends JFrame {
     }
 
     /**
-     * Checks whether the provided string input matches the format DDDDD where D is a digit.
-     *
-     * @param input The string to check
-     * @return True if the string matches the expected format; false otherwise
-     */
-    private boolean isSingleId(String input) {
-        return input.matches("\\d{5}");
-    }
-
-    /**
-     * Checks whether the provided string input matches the format DDDDD,DDDDD,... where D is a digit.
-     *
-     * @param input The string to check
-     * @return True if the string matches the expected format; false otherwise
-     */
-    private boolean isIdSet(String input) {
-        return input.matches("\\d{5}(,\\s*\\d{5})*");
-    }
-
-    /**
-     * Checks whether the provided string input matches the format DDDDD-DDDDD where D is a digit.
-     *
-     * @param input The string to check
-     * @return True if the string matches the expected format; false otherwise
-     */
-    private boolean isIdRange(String input) {
-        return input.matches("\\d{5}\\s*-\\s*\\d{5}");
-    }
-
-    /**
      * Determines whether the ID field is a valid format and sets the enabled property on the download button
      * accordingly.
      */
@@ -370,30 +334,34 @@ public class TLEasy extends JFrame {
      * @param input A string value from the ID field
      * @return True if the value is valid; false otherwise
      */
+    /**
+     * Returns a boolean representing whether the provided string is a valid ID input.
+     * Supports a comma separated list of 5-digit IDs and/or ranges (e.g., "12345,55555-66666,99999").
+     *
+     * @param input A string value from the ID field
+     * @return True if the value is valid; false otherwise
+     */
     private boolean validateInput(String input) {
         if (input.isEmpty()) {
             return false;
         }
-
-        // Single ID
-        if (isSingleId(input)) {
-            return true;
+        // Split input by commas
+        String[] parts = input.split("\\s*,\\s*");
+        for (String part : parts) {
+            if (part.matches("\\d{5}")) {
+                continue;
+            } else if (part.matches("\\d{5}\\s*-\\s*\\d{5}")) {
+                String[] rangeParts = part.split("\\s*-\\s*");
+                int start = Integer.parseInt(rangeParts[0]);
+                int end = Integer.parseInt(rangeParts[1]);
+                if (start > end) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-
-        // Set of IDs
-        if (isIdSet(input)) {
-            return true;
-        }
-
-        // Range of IDs
-        if (isIdRange(input)) {
-            String[] range = input.split("\\s*-\\s*");
-            int start = Integer.parseInt(range[0]);
-            int end = Integer.parseInt(range[1]);
-            return start <= end;
-        }
-
-        return false;
+        return true;
     }
 
     /**
