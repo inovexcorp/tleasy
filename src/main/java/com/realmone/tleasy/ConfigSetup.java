@@ -5,13 +5,8 @@ import com.realmone.tleasy.ui.InputValidator;
 import com.realmone.tleasy.ui.NotNullInputValidator;
 import com.realmone.tleasy.ui.RegexInputValidator;
 
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.Properties;
-import java.util.stream.Stream;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
@@ -21,6 +16,14 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConfigSetup extends JDialog {
 
@@ -34,52 +37,66 @@ public class ConfigSetup extends JDialog {
     private final JTextField keystoreField;
     private final JPasswordField keystorePassField;
     private final JCheckBox skipCertValidationCheckBox;
+    private final JCheckBox darkThemeCheckBox;
 
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
         setModal(true);
-        setSize(600, 200);
+        setSize(600, 250);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-
-        // Panel for Styling
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(5, 3)); // Adjusted to accommodate file chooser buttons
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Adds padding around the form
-
 
         // Fields for input
         tleEndpointField = new JTextField();
         keystoreField = new JTextField();
         keystorePassField = new JPasswordField();
         skipCertValidationCheckBox = new JCheckBox("Skip SSL Certificate Validation");
+        darkThemeCheckBox = new JCheckBox("Enable Dark Theme");
 
-        // Add labels and fields
-        panel.add(new JLabel("TLE Data Endpoint:"));
-        panel.add(tleEndpointField);
-        panel.add(new JLabel()); // Empty cell for layout alignment
+        // Panel for Styling using vertical BoxLayout for each row
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        panel.add(new JLabel("Keystore File Path:"));
-        panel.add(keystoreField);
+        // Row 1: TLE Data Endpoint
+        JPanel endpointRow = new JPanel(new BorderLayout(5, 5));
+        endpointRow.add(new JLabel("TLE Data Endpoint:"), BorderLayout.WEST);
+        endpointRow.add(tleEndpointField, BorderLayout.CENTER);
+        panel.add(endpointRow);
+
+        // Row 2: Keystore File Path with Browse button
+        JPanel keystoreRow = new JPanel(new BorderLayout(5, 5));
+        keystoreRow.add(new JLabel("Keystore File Path:"), BorderLayout.WEST);
+        JPanel keystoreInputPanel = new JPanel(new BorderLayout(5, 5));
+        keystoreInputPanel.add(keystoreField, BorderLayout.CENTER);
         JButton keystoreBrowseButton = new JButton("Browse...");
         keystoreBrowseButton.addActionListener(e -> chooseFile(keystoreField));
-        panel.add(keystoreBrowseButton);
+        keystoreInputPanel.add(keystoreBrowseButton, BorderLayout.EAST);
+        keystoreRow.add(keystoreInputPanel, BorderLayout.CENTER);
+        panel.add(keystoreRow);
 
-        panel.add(new JLabel("Keystore Password:"));
-        panel.add(keystorePassField);
-        panel.add(new JLabel()); // Empty cell for layout alignment
+        // Row 3: Keystore Password
+        JPanel passwordRow = new JPanel(new BorderLayout(5, 5));
+        passwordRow.add(new JLabel("Keystore Password:"), BorderLayout.WEST);
+        passwordRow.add(keystorePassField, BorderLayout.CENTER);
+        panel.add(passwordRow);
 
-        panel.add(new JLabel());
-        panel.add(skipCertValidationCheckBox);
-        panel.add(new JLabel()); // Empty cell for layout alignment
+        // Row 4: Skip SSL Certificate Validation
+        JPanel skipCertRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        skipCertRow.add(skipCertValidationCheckBox);
+        panel.add(skipCertRow);
 
-        panel.add(new JLabel()); // Empty cell for layout alignment
+        // Row 5: Dark Theme
+        darkThemeCheckBox.setSelected(Configuration.isDarkTheme());
+        JPanel darkThemeRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        darkThemeRow.add(darkThemeCheckBox);
+        panel.add(darkThemeRow);
 
-        // Buttons
+        // Row 6: Buttons
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton saveButton = new JButton("Save");
         saveButton.setEnabled(false);
         saveButton.addActionListener(new SaveButtonListener());
-        panel.add(saveButton);
-
+        buttonRow.add(saveButton);
         JButton cancelButton = new JButton("Cancel" + (exitOnClose ? " & Quit" : ""));
         cancelButton.addActionListener(e -> {
             dispose();
@@ -87,7 +104,8 @@ public class ConfigSetup extends JDialog {
                 System.exit(1);
             }
         });
-        panel.add(cancelButton);
+        buttonRow.add(cancelButton);
+        panel.add(buttonRow);
 
         // Validate configuration of the tle endpoint as a valid URL.
         InputValidator endpointRegexValidator = RegexInputValidator.builder()
@@ -117,6 +135,11 @@ public class ConfigSetup extends JDialog {
 
         // Add panel to dialog
         add(panel);
+
+        // Apply dark theme if enabled
+        if (Configuration.isDarkTheme()) {
+            applyDarkTheme();
+        }
 
         setLocationRelativeTo(null);
         setVisible(true);
@@ -174,6 +197,46 @@ public class ConfigSetup extends JDialog {
         newConfiguration.setProperty(Configuration.PROP_KEYSTORE, keystoreField.getText());
         newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
         newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
+        newConfiguration.setProperty(Configuration.PROP_DARK_THEME, String.valueOf(darkThemeCheckBox.isSelected()));
         return newConfiguration;
+    }
+
+    /**
+     * Applies dark theme styling to the configuration dialog by updating background and foreground colors.
+     */
+    private void applyDarkTheme() {
+        // Set the background of the content pane
+        getContentPane().setBackground(java.awt.Color.DARK_GRAY);
+        // Recursively update all child components
+        applyDarkThemeToComponent(getContentPane());
+    }
+
+    /**
+     * Recursively applies dark theme styling to a component and its children.
+     *
+     * @param comp The component to style
+     */
+    private void applyDarkThemeToComponent(java.awt.Component comp) {
+        if (comp instanceof JPanel) {
+            comp.setBackground(java.awt.Color.DARK_GRAY);
+            for (java.awt.Component child : ((JPanel) comp).getComponents()) {
+                applyDarkThemeToComponent(child);
+            }
+        } else if (comp instanceof JLabel) {
+            comp.setForeground(Color.WHITE);
+        } else if (comp instanceof JTextField) {
+            comp.setBackground(Color.GRAY);
+            comp.setForeground(Color.WHITE);
+        } else if (comp instanceof JButton) {
+            comp.setBackground(Color.GRAY);
+            comp.setForeground(Color.DARK_GRAY);
+        } else if (comp instanceof JCheckBox) {
+            comp.setBackground(Color.DARK_GRAY);
+            comp.setForeground(Color.WHITE);
+        } else {
+            // For any other component, apply default dark theme colors
+            comp.setBackground(java.awt.Color.DARK_GRAY);
+            comp.setForeground(java.awt.Color.WHITE);
+        }
     }
 }

@@ -20,13 +20,22 @@ import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 public class TLEasy extends JFrame {
 
@@ -38,6 +47,12 @@ public class TLEasy extends JFrame {
     private final JMenuBar menuBar;
     private final JMenu advMenu;
     private final JMenuItem configurationItem;
+
+    // Default Colors
+    private Color defaultBackground;
+    private final Color darkBackground = Color.DARK_GRAY;
+    private final Map<Component, Color[]> defaultColors = new HashMap<>();
+    private final Map<Component, Color[]> darkColors = new HashMap<>();
 
     // TLEasy Variables
     private static TleClient client;
@@ -62,7 +77,10 @@ public class TLEasy extends JFrame {
         menuBar.add(advMenu);
         configurationItem = new JMenuItem("Configuration");
         advMenu.add(configurationItem);
-        configurationItem.addActionListener(e -> configureAndSetupClient(false, false));
+        configurationItem.addActionListener(e -> {
+            configureAndSetupClient(false, false);
+            toggleDarkTheme(Configuration.isDarkTheme());
+        });
 
         // Create ID Field
         idField = new JTextField(20);
@@ -113,6 +131,61 @@ public class TLEasy extends JFrame {
             statusLabel.setText("Downloading...");
             performDownload();
         });
+        setColorMaps();
+        toggleDarkTheme(Configuration.isDarkTheme());
+    }
+
+    /**
+     * Populates the default and dark theme color maps for all components for use when toggling the theme. Uses an array
+     * of {@link Color} objects to represent the foreground and background settings in that order.
+     */
+    private void setColorMaps() {
+        this.defaultBackground = getContentPane().getBackground();
+        defaultColors.put(menuBar, new Color[]{menuBar.getForeground(), menuBar.getBackground()});
+        darkColors.put(menuBar, new Color[]{Color.BLACK, Color.GRAY});
+        defaultColors.put(advMenu, new Color[]{advMenu.getForeground(), advMenu.getBackground()});
+        darkColors.put(advMenu, new Color[]{Color.BLACK, Color.GRAY});
+        defaultColors.put(configurationItem, new Color[]{configurationItem.getForeground(), configurationItem.getBackground()});
+        darkColors.put(configurationItem, new Color[]{Color.BLACK, Color.GRAY});
+        for (java.awt.Component comp : getContentPane().getComponents()) {
+            if (comp instanceof JLabel) {
+                defaultColors.put(comp, new Color[]{comp.getForeground()});
+                darkColors.put(comp, new Color[]{Color.WHITE});
+            } else if (comp instanceof JTextField) {
+                defaultColors.put(comp, new Color[]{comp.getForeground(), comp.getBackground()});
+                darkColors.put(comp, new Color[]{Color.WHITE, Color.GRAY});
+            } else if (comp instanceof JButton || comp instanceof JProgressBar) {
+                defaultColors.put(comp, new Color[]{comp.getForeground(), comp.getBackground()});
+                darkColors.put(comp, new Color[]{Color.DARK_GRAY, Color.GRAY});
+            }
+        }
+    }
+
+    /**
+     * Updates the styling of all components and the content pane to use dark theme or revert to default colors. Uses
+     * the previously populated color maps to determine the appropriate colors.
+     *
+     * @param apply True if applying dark theme; false to use default colors
+     */
+    private void toggleDarkTheme(boolean apply) {
+        // Set the background for the frame's content pane
+        getContentPane().setBackground(apply ? this.darkBackground : this.defaultBackground);
+        // Update opacity of menu bar and its items
+        menuBar.setOpaque(apply);
+        advMenu.setOpaque(apply);
+        configurationItem.setOpaque(apply);
+        // Identify Component Color Map to use
+        Map<Component, Color[]> mapToUse = apply ? darkColors : defaultColors;
+        // Update colors for manu bar and child components: labels, text fields, buttons, and progress bar
+        Stream.concat(Arrays.stream(getContentPane().getComponents()), Stream.of(menuBar, advMenu, configurationItem))
+                .forEach(comp -> {
+                    if (mapToUse.containsKey(comp)) {
+                        comp.setForeground(mapToUse.get(comp)[0]);
+                        if (mapToUse.get(comp).length == 2) {
+                            comp.setBackground(mapToUse.get(comp)[1]);
+                        }
+                    }
+                });
     }
 
     /**
@@ -260,6 +333,75 @@ public class TLEasy extends JFrame {
     }
 
     /**
+     * <<<<<<< HEAD
+     * Parses the text from the ID input field to extract valid ID numbers.
+     *
+     * <p>
+     * This method supports two input formats:
+     * <ul>
+     *   <li>Single 5-digit identifiers (e.g., "12345").</li>
+     *   <li>Ranges of 5-digit identifiers specified with a hyphen (e.g., "12345-12350").
+     *       In this case, all numbers in the inclusive range are added to the result.</li>
+     * </ul>
+     * The input string may contain multiple IDs or ranges separated by commas. Whitespace around
+     * commas or hyphens is ignored. If a range is specified where the start number is greater than
+     * the end number, an {@code IllegalArgumentException} is thrown.
+     * </p>
+     *
+     * @return a {@link Set} of ID Strings extracted from the input; returns an empty set if no valid IDs
+     * are found.
+     */
+    private Set<String> getIds() {
+        String input = idField.getText().trim();
+        Set<String> result = new HashSet<>();
+        // Split input by commas to allow mixed single IDs and ranges
+        String[] parts = input.split("\\s*,\\s*");
+        for (String part : parts) {
+            // If the part is a 5 digit identifier
+            if (part.matches("\\d{5}")) {
+                result.add(part);
+            }
+            // Else if the part is a range specification
+            else if (part.matches("\\d{5}\\s*-\\s*\\d{5}")) {
+                // Grab the start and end part
+                String[] rangeParts = part.split("\\s*-\\s*");
+                int start = Integer.parseInt(rangeParts[0]);
+                int end = Integer.parseInt(rangeParts[1]);
+                // Simple validation to ensure the first number is smaller than the second...
+                if (start > end) {
+                    throw new IllegalArgumentException("Range must be in ascending order.");
+                }
+                // Add all the target numbers in the specified range
+                result.addAll(getNumbersBetween(start, end).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toSet()));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates a Set of integers representing the range of numbers between the provided start and end values.
+     *
+     * @param start The integer to start the range with
+     * @param end   The integer to end the range with
+     * @return A {@link Set} of {@link Integer}s representing all numbers from the start to the end inclusive
+     */
+    private Set<Integer> getNumbersBetween(int start, int end) {
+        if (start > end) {
+            throw new IllegalArgumentException("Start number must be less than or equal to end number.");
+        }
+
+        Set<Integer> numbers = new HashSet<>();
+        for (int i = start; i <= end; i++) {
+            numbers.add(i);
+        }
+        return numbers;
+    }
+
+    /**
+     * =======
+     * >>>>>>> main
      * Determines whether the ID field is a valid format and sets the enabled property on the download button
      * accordingly.
      */
