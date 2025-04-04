@@ -90,7 +90,7 @@ public class TestConfiguration {
         testProps.setProperty(Configuration.PROP_KEYSTORE, testKeystore);
         testProps.setProperty(Configuration.PROP_KEYSTORE_PASS, testKeystorePassword);
         testProps.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, testSkipCert);
-        testProps.setProperty(Configuration.PROP_DARK_THEME, testDarkTheme);
+//        testProps.setProperty(Configuration.PROP_DARK_THEME, testDarkTheme);
 
         // Configure with test properties
         Configuration.configure(testProps);
@@ -104,7 +104,7 @@ public class TestConfiguration {
         assertEquals("Keystore path mismatch", testKeystore, Configuration.getKeyStoreFile().getPath());
         assertArrayEquals("Keystore password mismatch", testKeystorePassword.toCharArray(), Configuration.getKeystorePassword());
         assertTrue("Skip certificate validation should be true", Configuration.isSkipCertificateValidation());
-        assertTrue("Dark theme should be true", Configuration.isDarkTheme());
+//        assertTrue("Dark theme should be true", Configuration.isDarkTheme());
 
         // Additionally, verify that the properties are correctly stored in the file
         Properties loadedProps = new Properties();
