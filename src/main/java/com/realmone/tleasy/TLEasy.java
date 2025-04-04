@@ -3,6 +3,22 @@ package com.realmone.tleasy;
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -18,17 +34,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TLEasy extends JFrame {
 
@@ -40,6 +45,12 @@ public class TLEasy extends JFrame {
     private final JMenuBar menuBar;
     private final JMenu advMenu;
     private final JMenuItem configurationItem;
+
+    // Default Colors
+    private Color defaultBackground;
+    private final Color darkBackground = Color.DARK_GRAY;
+    private final Map<Component, Color[]> defaultColors = new HashMap<>();
+    private final Map<Component, Color[]> darkColors = new HashMap<>();
 
     // TLEasy Variables
     private static TleClient client;
@@ -64,7 +75,10 @@ public class TLEasy extends JFrame {
         menuBar.add(advMenu);
         configurationItem = new JMenuItem("Configuration");
         advMenu.add(configurationItem);
-        configurationItem.addActionListener(e -> configureAndSetupClient(false, false));
+        configurationItem.addActionListener(e -> {
+            configureAndSetupClient(false, false);
+            toggleDarkTheme(Configuration.isDarkTheme());
+        });
 
         // Create ID Field
         idField = new JTextField(20);
@@ -115,39 +129,61 @@ public class TLEasy extends JFrame {
             statusLabel.setText("Downloading...");
             performDownload();
         });
-        if (Configuration.isDarkTheme()) {
-            applyDarkTheme();
+        setColorMaps();
+        toggleDarkTheme(Configuration.isDarkTheme());
+    }
+
+    /**
+     * Populates the default and dark theme color maps for all components for use when toggling the theme. Uses an array
+     * of {@link Color} objects to represent the foreground and background settings in that order.
+     */
+    private void setColorMaps() {
+        this.defaultBackground = getContentPane().getBackground();
+        defaultColors.put(menuBar, new Color[]{menuBar.getForeground(), menuBar.getBackground()});
+        darkColors.put(menuBar, new Color[]{Color.BLACK, Color.GRAY});
+        defaultColors.put(advMenu, new Color[]{advMenu.getForeground(), advMenu.getBackground()});
+        darkColors.put(advMenu, new Color[]{Color.BLACK, Color.GRAY});
+        defaultColors.put(configurationItem, new Color[]{configurationItem.getForeground(), configurationItem.getBackground()});
+        darkColors.put(configurationItem, new Color[]{Color.BLACK, Color.GRAY});
+        for (java.awt.Component comp : getContentPane().getComponents()) {
+            if (comp instanceof JLabel) {
+                defaultColors.put(comp, new Color[]{comp.getForeground()});
+                darkColors.put(comp, new Color[]{Color.WHITE});
+            } else if (comp instanceof JTextField) {
+                defaultColors.put(comp, new Color[]{comp.getForeground(), comp.getBackground()});
+                darkColors.put(comp, new Color[]{Color.WHITE, Color.GRAY});
+            } else if (comp instanceof JButton || comp instanceof JProgressBar) {
+                defaultColors.put(comp, new Color[]{comp.getForeground(), comp.getBackground()});
+                darkColors.put(comp, new Color[]{Color.DARK_GRAY, Color.GRAY});
+            }
         }
     }
 
-    private void applyDarkTheme() {
+    /**
+     * Updates the styling of all components and the content pane to use dark theme or revert to default colors. Uses
+     * the previously populated color maps to determine the appropriate colors.
+     *
+     * @param apply True if applying dark theme; false to use default colors
+     */
+    private void toggleDarkTheme(boolean apply) {
         // Set the background for the frame's content pane
-        getContentPane().setBackground(Color.DARK_GRAY);
-        // Update menu bar and its items
-        menuBar.setOpaque(true);
-        advMenu.setOpaque(true);
-        configurationItem.setOpaque(true);
-        menuBar.setBackground(Color.GRAY);
-        menuBar.setForeground(Color.BLACK);
-        advMenu.setBackground(Color.GRAY);
-        advMenu.setForeground(Color.BLACK);
-        configurationItem.setBackground(Color.GRAY);
-        configurationItem.setForeground(Color.BLACK);
-        // Update child components: labels, text fields, buttons, and progress bar
-        for (java.awt.Component comp : getContentPane().getComponents()) {
-            if (comp instanceof JLabel) {
-                comp.setForeground(Color.WHITE);
-            } else if (comp instanceof JTextField) {
-                comp.setBackground(Color.GRAY);
-                comp.setForeground(Color.WHITE);
-            } else if (comp instanceof JButton) {
-                comp.setBackground(Color.GRAY);
-                comp.setForeground(Color.DARK_GRAY);
-            } else if (comp instanceof JProgressBar) {
-                comp.setBackground(Color.GRAY);
-                comp.setForeground(Color.DARK_GRAY);
-            }
-        }
+        getContentPane().setBackground(apply ? this.darkBackground : this.defaultBackground);
+        // Update opacity of menu bar and its items
+        menuBar.setOpaque(apply);
+        advMenu.setOpaque(apply);
+        configurationItem.setOpaque(apply);
+        // Identify Component Color Map to use
+        Map<Component, Color[]> mapToUse = apply ? darkColors : defaultColors;
+        // Update colors for manu bar and child components: labels, text fields, buttons, and progress bar
+        Stream.concat(Arrays.stream(getContentPane().getComponents()), Stream.of(menuBar, advMenu, configurationItem))
+                .forEach(comp -> {
+                    if (mapToUse.containsKey(comp)) {
+                        comp.setForeground(mapToUse.get(comp)[0]);
+                        if (mapToUse.get(comp).length == 2) {
+                            comp.setBackground(mapToUse.get(comp)[1]);
+                        }
+                    }
+                });
     }
 
     /**
