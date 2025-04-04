@@ -4,6 +4,7 @@ import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 import com.realmone.tleasy.tle.TleUtils;
 
+import javax.imageio.ImageIO;
 import javax.net.ssl.SSLException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -23,6 +24,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -69,6 +71,14 @@ public class TLEasy extends JFrame {
         setSize(300, 200);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new FlowLayout());
+
+        // Load the icon from the resources folder
+        try {
+            BufferedImage icon = ImageIO.read(getClass().getResource("/tleasy.png"));
+            setIconImage(icon);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Create Menu Bar
         menuBar = new JMenuBar();
