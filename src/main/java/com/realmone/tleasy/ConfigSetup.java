@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -222,16 +223,16 @@ public class ConfigSetup extends JDialog {
                 applyDarkThemeToComponent(child);
             }
         } else if (comp instanceof JLabel) {
-            comp.setForeground(java.awt.Color.WHITE);
-        } else if (comp instanceof JTextField || comp instanceof JPasswordField) {
-            comp.setBackground(java.awt.Color.GRAY);
-            comp.setForeground(java.awt.Color.WHITE);
+            comp.setForeground(Color.WHITE);
+        } else if (comp instanceof JTextField) {
+            comp.setBackground(Color.GRAY);
+            comp.setForeground(Color.WHITE);
         } else if (comp instanceof JButton) {
-            comp.setBackground(java.awt.Color.GRAY);
-            comp.setForeground(java.awt.Color.WHITE);
+            comp.setBackground(Color.GRAY);
+            comp.setForeground(Color.DARK_GRAY);
         } else if (comp instanceof JCheckBox) {
-            comp.setBackground(java.awt.Color.DARK_GRAY);
-            comp.setForeground(java.awt.Color.WHITE);
+            comp.setBackground(Color.DARK_GRAY);
+            comp.setForeground(Color.WHITE);
         } else {
             // For any other component, apply default dark theme colors
             comp.setBackground(java.awt.Color.DARK_GRAY);

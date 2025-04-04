@@ -6,6 +6,9 @@ import com.realmone.tleasy.tle.SimpleTleFilter;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Menu;
+import java.awt.MenuBar;
+import java.awt.MenuComponent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,8 +29,10 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
+import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -124,7 +129,16 @@ public class TLEasy extends JFrame {
     private void applyDarkTheme() {
         // Set the background for the frame's content pane
         getContentPane().setBackground(Color.DARK_GRAY);
-
+        // Update menu bar and its items
+        menuBar.setOpaque(true);
+        advMenu.setOpaque(true);
+        configurationItem.setOpaque(true);
+        menuBar.setBackground(Color.GRAY);
+        menuBar.setForeground(Color.BLACK);
+        advMenu.setBackground(Color.GRAY);
+        advMenu.setForeground(Color.BLACK);
+        configurationItem.setBackground(Color.GRAY);
+        configurationItem.setForeground(Color.BLACK);
         // Update child components: labels, text fields, buttons, and progress bar
         for (java.awt.Component comp : getContentPane().getComponents()) {
             if (comp instanceof JLabel) {
@@ -134,20 +148,12 @@ public class TLEasy extends JFrame {
                 comp.setForeground(Color.WHITE);
             } else if (comp instanceof JButton) {
                 comp.setBackground(Color.GRAY);
-                comp.setForeground(Color.WHITE);
+                comp.setForeground(Color.DARK_GRAY);
             } else if (comp instanceof JProgressBar) {
                 comp.setBackground(Color.GRAY);
-                comp.setForeground(Color.WHITE);
+                comp.setForeground(Color.DARK_GRAY);
             }
         }
-
-        // Update menu bar and its items
-        menuBar.setBackground(Color.DARK_GRAY);
-        menuBar.setForeground(Color.WHITE);
-        advMenu.setBackground(Color.DARK_GRAY);
-        advMenu.setForeground(Color.WHITE);
-        configurationItem.setBackground(Color.GRAY);
-        configurationItem.setForeground(Color.WHITE);
     }
 
     /**
