@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,8 +75,11 @@ public class TLEasy extends JFrame {
 
         // Load the icon from the resources folder
         try {
-            BufferedImage icon = ImageIO.read(getClass().getResource("/tleasy.png"));
-            setIconImage(icon);
+            URL resource = getClass().getResource("/tleasy.png");
+            if (resource != null) {
+                BufferedImage icon = ImageIO.read(resource);
+                setIconImage(icon);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
