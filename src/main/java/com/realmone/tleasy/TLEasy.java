@@ -2,7 +2,23 @@ package com.realmone.tleasy;
 
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
+import com.realmone.tleasy.tle.TleUtils;
 
+import javax.net.ssl.SSLException;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -19,21 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.net.ssl.SSLException;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+
 
 public class TLEasy extends JFrame {
 
@@ -250,7 +252,7 @@ public class TLEasy extends JFrame {
             protected Long doInBackground() throws Exception {
                 System.out.println("Setting up filter for: " + idField.getText());
                 TleFilter filter = SimpleTleFilter.builder()
-                        .targetNoradIds(getIds())
+                        .targetNoradIds(TleUtils.parseIdentifiers(idField.getText()))
                         .build();
                 Optional<File> saveFile = getSaveFile();
                 if (!saveFile.isPresent()) {
@@ -331,6 +333,7 @@ public class TLEasy extends JFrame {
     }
 
     /**
+     * <<<<<<< HEAD
      * Parses the text from the ID input field to extract valid ID numbers.
      *
      * <p>
@@ -397,6 +400,8 @@ public class TLEasy extends JFrame {
     }
 
     /**
+     * =======
+     * >>>>>>> main
      * Determines whether the ID field is a valid format and sets the enabled property on the download button
      * accordingly.
      */
