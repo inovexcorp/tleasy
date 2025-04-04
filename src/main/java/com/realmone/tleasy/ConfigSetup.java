@@ -5,14 +5,6 @@ import com.realmone.tleasy.ui.InputValidator;
 import com.realmone.tleasy.ui.NotNullInputValidator;
 import com.realmone.tleasy.ui.RegexInputValidator;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.Properties;
-import java.util.stream.Stream;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -24,6 +16,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.Properties;
+import java.util.stream.Stream;
 
 public class ConfigSetup extends JDialog {
 
@@ -42,7 +41,7 @@ public class ConfigSetup extends JDialog {
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
         setModal(true);
-        setSize(600, 200);
+        setSize(600, 250);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Fields for input
@@ -87,9 +86,8 @@ public class ConfigSetup extends JDialog {
 
         // Row 5: Dark Theme
         darkThemeCheckBox.setSelected(Configuration.isDarkTheme());
-        JPanel darkThemeRow = new JPanel(new BorderLayout(5, 5));
-        darkThemeRow.add(new JLabel("Dark Theme:"), BorderLayout.WEST);
-        darkThemeRow.add(darkThemeCheckBox, BorderLayout.CENTER);
+        JPanel darkThemeRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        darkThemeRow.add(darkThemeCheckBox);
         panel.add(darkThemeRow);
 
         // Row 6: Buttons
@@ -214,6 +212,7 @@ public class ConfigSetup extends JDialog {
 
     /**
      * Recursively applies dark theme styling to a component and its children.
+     *
      * @param comp The component to style
      */
     private void applyDarkThemeToComponent(java.awt.Component comp) {
