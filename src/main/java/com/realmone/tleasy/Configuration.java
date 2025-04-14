@@ -18,6 +18,7 @@ public class Configuration {
             + File.separator + "keystore.p12";
 
     public static final String PROP_TLE_ENDPOINT = "tle_data_endpoint";
+    public static final String PROP_TLE_FILE = "tle_data_file";
     public static final String PROP_KEYSTORE = "keystore";
     public static final String PROP_KEYSTORE_PASS = PROP_KEYSTORE + "_password";
     public static final String PROP_SKIP_CERT_VALIDATE = "skip_cert_validation";
@@ -42,6 +43,11 @@ public class Configuration {
 
     public static String getTleDataEndpoint() {
         return properties.getProperty(PROP_TLE_ENDPOINT, "");
+    }
+
+    public static File getTleFile() {
+        String path = properties.getProperty(PROP_TLE_FILE, "");
+        return path.isEmpty() ? null : new File(path);
     }
 
     public static File getKeyStoreFile() {

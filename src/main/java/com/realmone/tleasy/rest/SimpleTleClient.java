@@ -3,12 +3,6 @@ package com.realmone.tleasy.rest;
 import com.realmone.tleasy.TleClient;
 import lombok.Builder;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +17,12 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.UUID;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class SimpleTleClient implements TleClient {
 
@@ -30,16 +30,18 @@ public class SimpleTleClient implements TleClient {
     private static final String TRUSTSTORE = "truststore.p12";
     private static final String TRUSTSTORE_PW = "realm1p@ss";
     private final String tleDataEndpoint;
+    private final File tleFile;
     private final File keystoreFile;
     private final char[] keystorePassword;
     private final boolean skipCertValidation;
     private SSLContext sslContext;
 
     @Builder
-    private SimpleTleClient(String tleDataEndpoint, File keystoreFile, char[] keystorePassword,
+    private SimpleTleClient(String tleDataEndpoint, File tleFile, File keystoreFile, char[] keystorePassword,
                             boolean skipCertValidation)
             throws IOException {
         this.tleDataEndpoint = tleDataEndpoint;
+        this.tleFile = tleFile;
         this.keystoreFile = keystoreFile;
         this.keystorePassword = keystorePassword;
         this.skipCertValidation = skipCertValidation;
@@ -54,51 +56,59 @@ public class SimpleTleClient implements TleClient {
      */
     @Override
     public InputStream fetchTle() throws IOException {
-        URL url = URI.create(tleDataEndpoint).toURL();
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        HttpURLConnection.setFollowRedirects(true);
+        // If an endpoint was provided instead of a file
+        if (tleDataEndpoint != null && !tleDataEndpoint.isEmpty()) {
+            URL url = URI.create(tleDataEndpoint).toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            HttpURLConnection.setFollowRedirects(true);
 
-        if (connection instanceof HttpsURLConnection) {
-            HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
-            httpsConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-            if (skipCertValidation) {
-                // Bypass hostname verification
-                httpsConnection.setHostnameVerifier((hostname, session) -> true);
+            if (connection instanceof HttpsURLConnection) {
+                HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
+                httpsConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+                if (skipCertValidation) {
+                    // Bypass hostname verification
+                    httpsConnection.setHostnameVerifier((hostname, session) -> true);
+                }
             }
+
+            connection.setRequestMethod("GET");
+            connection.setDoInput(true);
+
+            int responseCode = connection.getResponseCode();
+            // Redirects are now handled automatically
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw new IOException("Remote server did not respond with success: " + responseCode);
+            }
+
+            return connection.getInputStream();
+        } else { // If a file was provided instead of an endpoint
+            return Files.newInputStream(tleFile.toPath());
         }
-
-        connection.setRequestMethod("GET");
-        connection.setDoInput(true);
-
-        int responseCode = connection.getResponseCode();
-        // Redirects are now handled automatically
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new IOException("Remote server did not respond with success: " + responseCode);
-        }
-
-        return connection.getInputStream();
     }
 
     @Override
     public void trustCerts() throws IOException {
-        URL url = URI.create(tleDataEndpoint).toURL();
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        if (connection instanceof HttpsURLConnection) {
-            HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
+        // Only performed if an endpoint was provided instead of a file
+        if (tleDataEndpoint != null && !tleDataEndpoint.isEmpty()) {
+            URL url = URI.create(tleDataEndpoint).toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            if (connection instanceof HttpsURLConnection) {
+                HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
 
-            // Trust everything so we can grab the certs without it failing
-            try {
-                SSLContext trustAllSSLContext = getTrustAllSSLContext(keystoreFile, keystorePassword);
-                httpsConnection.setSSLSocketFactory(trustAllSSLContext.getSocketFactory());
-                httpsConnection.setHostnameVerifier((hostname, session) -> true);
-                connection.connect();
-                this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, skipCertValidation,
-                        httpsConnection.getServerCertificates());
-            } catch (GeneralSecurityException ex) {
-                throw new RuntimeException(ex);
+                // Trust everything so we can grab the certs without it failing
+                try {
+                    SSLContext trustAllSSLContext = getTrustAllSSLContext(keystoreFile, keystorePassword);
+                    httpsConnection.setSSLSocketFactory(trustAllSSLContext.getSocketFactory());
+                    httpsConnection.setHostnameVerifier((hostname, session) -> true);
+                    connection.connect();
+                    this.sslContext = createSecureSslContext(keystoreFile, keystorePassword, skipCertValidation,
+                            httpsConnection.getServerCertificates());
+                } catch (GeneralSecurityException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
+            connection.disconnect();
         }
-        connection.disconnect();
     }
 
     /**
