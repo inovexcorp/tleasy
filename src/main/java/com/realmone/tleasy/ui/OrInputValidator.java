@@ -5,6 +5,9 @@ import lombok.Singular;
 
 import java.util.List;
 
+/**
+ * Simple validator to check that at least one of a list of {@link InputValidator}s is valid.
+ */
 @Builder
 public class OrInputValidator implements InputValidator {
 
