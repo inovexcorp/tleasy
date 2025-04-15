@@ -27,9 +27,7 @@ release:
     - if: $CI_COMMIT_BRANCH == 'main'
   script:
     # Configure git
-    - PRIVATE_URL="$(echo $CI_PROJECT_URL | sed "s|https://|https://gitlab-ci-token:$ACCESS_TOKEN@|g").git"
     - which git || (yum install -y -q git)
-    - git remote set-url origin $PRIVATE_URL
     - git config --global user.email 'gitlab.runner@inovexcorp.com'
     - git config --global user.name 'Gitlab Runner'
     # Perform Release

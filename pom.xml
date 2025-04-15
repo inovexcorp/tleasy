@@ -39,11 +39,10 @@
     </dependencies>
 
     <scm>
-        <connection>scm:git:git@github.com:inovexcorp/tleasy.git</connection>
-        <developerConnection>scm:git:git@github.com:inovexcorp/tleasy.git</developerConnection>
+        <connection>scm:git:git@gitlab.inovexcorp.com:tleasy/tleasy.git</connection>
+        <developerConnection>scm:git:git@gitlab.inovexcorp.com:tleasy/tleasy.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
-
 
     <build>
         <plugins>
