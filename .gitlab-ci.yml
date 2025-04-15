@@ -2,12 +2,41 @@ stages:
   - test
   - release
 
+variables:
+  GIT_DEPTH: 0
+  MAVEN_OPTS: "-Dhttps.protocols=TLSv1.2 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --show-version -Dsurefire.rerunFailingTestsCount=2 -Dfailsafe.rerunFailingTestsCount=2 -Dmaven.repo.local=.m2/repository"
+
 unit_tests:
   stage: test
   image: maven:3.6.3-jdk-11
-  script:
-    - mvn test
   rules:
     - if: '$CI_MERGE_REQUEST_ID'
       when: always
+    - if: $CI_COMMIT_BRANCH == 'develop'
+  script:
+    - mvn test
 
+release:
+  stage: release
+  image: maven:3.6.3-jdk-11
+  rules:
+    - if: $CI_COMMIT_TITLE =~ /^\[maven-release-plugin\].*$/
+      when:
+        never
+    - if: $CI_COMMIT_BRANCH == 'main'
+  script:
+    # Configure git
+    - PRIVATE_URL="$(echo $CI_PROJECT_URL | sed "s|https://|https://gitlab-ci-token:$ACCESS_TOKEN@|g").git"
+    - which git || (yum install -y -q git)
+    - git remote set-url origin $PRIVATE_URL
+    - git config --global user.email 'gitlab.runner@inovexcorp.com'
+    - git config --global user.name 'Gitlab Runner'
+    # Perform Release
+    - git checkout -B main
+    - mvn $MAVEN_CLI_OPTS release:prepare -B -DskipTests
+    - mvn $MAVEN_CLI_OPTS release:perform -B -DskipTests
+    # Merge main into develop
+    - git checkout develop
+    - git merge main
+    - git push origin develop

@@ -38,6 +38,12 @@
         </dependency>
     </dependencies>
 
+    <scm>
+        <connection>scm:git:git@github.com:inovexcorp/tleasy.git</connection>
+        <developerConnection>scm:git:git@github.com:inovexcorp/tleasy.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
 
     <build>
         <plugins>
@@ -66,6 +72,19 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Perform Release Steps -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <releaseProfiles>releases</releaseProfiles>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <scmCommentPrefix>[maven-release-plugin]</scmCommentPrefix>
+                </configuration>
             </plugin>
         </plugins>
     </build>
