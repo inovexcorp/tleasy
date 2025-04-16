@@ -4,22 +4,6 @@ import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 import com.realmone.tleasy.tle.TleUtils;
 
-import javax.imageio.ImageIO;
-import javax.net.ssl.SSLException;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -38,6 +22,22 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.imageio.ImageIO;
+import javax.net.ssl.SSLException;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 
 public class TLEasy extends JFrame {
@@ -209,6 +209,7 @@ public class TLEasy extends JFrame {
      */
     private static void setupClient() throws IOException {
         client = SimpleTleClient.builder()
+                .tleFile(Configuration.getTleFile())
                 .tleDataEndpoint(Configuration.getTleDataEndpoint())
                 .keystoreFile(Configuration.getKeyStoreFile())
                 .keystorePassword(Configuration.getKeystorePassword())
