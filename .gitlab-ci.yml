@@ -26,6 +26,8 @@ release:
         never
     - if: $CI_COMMIT_BRANCH == 'main'
   script:
+    # Copy settings.xml from runner into current docker container (/m2 is a mounted directory)
+    - cp /m2/settings.xml ~/.m2/settings.xml
     # Configure git
     - which git || (yum install -y -q git)
     - git config --global user.email 'gitlab.runner@inovexcorp.com'

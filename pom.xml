@@ -42,6 +42,29 @@
         <tag>HEAD</tag>
     </scm>
 
+    <distributionManagement>
+        <repository>
+            <id>inovex</id>
+            <url>https://nexus.inovexcorp.com/nexus/content/repositories/public-maven-prod-hosted/</url>
+        </repository>
+        <snapshotRepository>
+            <id>inovex</id>
+            <url>https://nexus.inovexcorp.com/nexus/content/repositories/public-maven-dev-hosted/</url>
+        </snapshotRepository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>inovex</id>
+            <url>https://nexus.inovexcorp.com/nexus/content/repositories/public-maven-prod-group/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>inovex</id>
+            <url>https://nexus.inovexcorp.com/nexus/content/repositories/public-maven-prod-group/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <build>
         <plugins>
             <!-- Creates Executable Jar with Dependencies -->
