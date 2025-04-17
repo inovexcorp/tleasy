@@ -30,6 +30,13 @@ release:
     - which git || (yum install -y -q git)
     - git config --global user.email 'gitlab.runner@inovexcorp.com'
     - git config --global user.name 'Gitlab Runner'
+    # Configure SSH
+    - mkdir -p ~/.ssh/
+    - which ssh-agent || ( yum install openssh-client -y )
+    - eval $(ssh-agent -s)
+    - chmod 600 $SSH_KEY
+    - ssh-add $SSH_KEY
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config 
     # Perform Release
     - git checkout -B main
     - mvn $MAVEN_CLI_OPTS release:prepare -B -DskipTests
