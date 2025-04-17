@@ -4,7 +4,7 @@
 
     <groupId>com.realmone</groupId>
     <artifactId>tleasy</artifactId>
-    <version>1.2</version>
+    <version>1.3-SNAPSHOT</version>
 
     <packaging>jar</packaging>
 
@@ -39,7 +39,7 @@
     <scm>
         <connection>scm:git:git@gitlab.inovexcorp.com:tleasy/tleasy.git</connection>
         <developerConnection>scm:git:git@gitlab.inovexcorp.com:tleasy/tleasy.git</developerConnection>
-        <tag>v1.2</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
