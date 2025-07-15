@@ -5,45 +5,67 @@ import com.realmone.tleasy.tle.SimpleTleFilter;
 import com.realmone.tleasy.tle.TleUtils;
 
 import java.awt.Color;
+import java.awt.Point;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowAdapter;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Set;
 import javax.imageio.ImageIO;
 import javax.net.ssl.SSLException;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
+import javax.swing.JButton;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import javax.swing.JProgressBar;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JWindow;
+import javax.swing.JList;
+import javax.swing.JFileChooser;
+import javax.swing.ListSelectionModel;
+import javax.swing.JScrollPane;
+import javax.swing.Timer;
+import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
 
 public class TLEasy extends JFrame {
 
     // Swing Components
     private final JTextField idField;
+    private final Set<String> inputHistory = new LinkedHashSet<>();
     private final JButton downloadButton;
     private final JProgressBar progressBar;
     private final JLabel statusLabel;
@@ -60,6 +82,13 @@ public class TLEasy extends JFrame {
     // TLEasy Variables
     private static TleClient client;
 
+    // History/autocomplete
+    private static final File HISTORY_FILE = new File(System.getProperty("user.home"), ".tleasy-history.txt");
+    // TODO: Update this to the correct path from Dan, same as Configuration.java
+    private final JWindow suggestionWindow = new JWindow();
+    private final JList<String> suggestionList = new JList<>();
+    private static final int HISTORY_LIMIT = 30;
+
     private static final JFileChooser fileChooser = new JFileChooser();
 
     static {
@@ -72,6 +101,16 @@ public class TLEasy extends JFrame {
         setSize(300, 200);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new FlowLayout());
+        suggestionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        suggestionWindow.setFocusableWindowState(false); // Keeps focus on text field
+        JScrollPane suggestionScroll = new JScrollPane(suggestionList);
+        suggestionWindow.add(suggestionScroll);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                saveHistoryToFile();
+            }
+        });
 
         // Load the icon from the resources folder
         try {
@@ -96,8 +135,36 @@ public class TLEasy extends JFrame {
             toggleDarkTheme(Configuration.isDarkTheme());
         });
 
-        // Create ID Field
+        // Create ID Field and autocomplete
+        loadHistoryFromFile();
         idField = new JTextField(20);
+        idField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) {
+                // Delay preventing the window from closing before a click can be processed
+                Timer timer = new Timer(150, (ae) -> {
+                    if (!suggestionWindow.isFocusOwner() && !suggestionList.isFocusOwner() && !idField.isFocusOwner()) {
+                        suggestionWindow.setVisible(false);
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
+            }
+        });
+
+        // Add arrow key navigation and enter selection to autocomplete dropdown
+        setupIdFieldKeyListener();
+
+        // Mouse listener for clicking the suggestion list
+        suggestionList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String selected = suggestionList.getSelectedValue();
+                if (selected != null) {
+                    acceptSuggestion(selected);
+                    idField.requestFocusInWindow();
+                }
+            }
+        });
 
         // Create download button disabled by default
         downloadButton = new JButton("Download");
@@ -112,6 +179,13 @@ public class TLEasy extends JFrame {
         statusLabel = new JLabel("Ready");
         statusLabel.setVisible(true);
 
+        // Enable hitting enter instead of clicking download, but not if autocomplete is open
+        idField.addActionListener(e -> {
+            if (!suggestionWindow.isVisible()) {
+                downloadButton.doClick();
+            }
+        });
+
         // Add components to frame
         add(new JLabel("Enter list of 5-digit ID(s) and/or range: "));
         add(idField);
@@ -123,23 +197,28 @@ public class TLEasy extends JFrame {
         add(progressBar);
         add(statusLabel);
 
-        // Validation handler on ID Field to control disabling button
+        // Validation handler on ID Field to control disabling button and autocomplete
         idField.getDocument().addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
-                checkID();
+                handleInputChange();
             }
-
             public void removeUpdate(DocumentEvent e) {
-                checkID();
+                handleInputChange();
             }
-
             public void insertUpdate(DocumentEvent e) {
+                handleInputChange();
+            }
+            private void handleInputChange() {
                 checkID();
+                showAutocompleteSuggestions();
             }
         });
 
         // Button click handler for starting download
         downloadButton.addActionListener(e -> {
+            // ensures most recent entry will be at the top of the autocomplete list whether it's already there or not
+            inputHistory.remove(idField.getText().trim());
+            inputHistory.add(idField.getText().trim());
             progressBar.setVisible(true);
             downloadButton.setEnabled(false);
             statusLabel.setText("Downloading...");
@@ -315,6 +394,14 @@ public class TLEasy extends JFrame {
                     progressBar.setVisible(false);
                     downloadButton.setEnabled(false);
                     idField.setText("");
+                    // Limit of how big the autocomplete list can be is enforced here:
+                    while (inputHistory.size() > HISTORY_LIMIT) {
+                        Iterator<String> it = inputHistory.iterator();
+                        if (it.hasNext()) {
+                            it.next();
+                            it.remove();
+                        }
+                    }
 
                     if (count != null) {
                         statusLabel.setText("Fetched " + count + " TLE entries");
@@ -348,7 +435,6 @@ public class TLEasy extends JFrame {
     }
 
     /**
-     * <<<<<<< HEAD
      * Parses the text from the ID input field to extract valid ID numbers.
      *
      * <p>
@@ -415,8 +501,6 @@ public class TLEasy extends JFrame {
     }
 
     /**
-     * =======
-     * >>>>>>> main
      * Determines whether the ID field is a valid format and sets the enabled property on the download button
      * accordingly.
      */
@@ -454,6 +538,154 @@ public class TLEasy extends JFrame {
             }
         }
         return true;
+    }
+
+    /**
+     * Helper method to update the text field with a selected suggestion.
+     * It replaces the current segment of text being typed, rather than the entire field.
+     *
+     * @param selected The suggestion chosen by the user.
+     */
+    private void acceptSuggestion(String selected) {
+        String text = idField.getText();
+        int lastComma = text.lastIndexOf(',');
+        int lastDash = text.lastIndexOf('-');
+        int lastSeparator = Math.max(lastComma, lastDash);
+
+        String prefix = (lastSeparator == -1) ? "" : text.substring(0, lastSeparator + 1);
+
+        // Use invokeLater to prevent race conditions with the DocumentListener
+        SwingUtilities.invokeLater(() -> {
+            idField.setText(prefix + selected);
+            suggestionWindow.setVisible(false);
+        });
+    }
+
+    /**
+     * Displays a popup menu of autocomplete suggestions based on the current text in the ID field.
+     * Suggestions are filtered from the stored input history to include only those that begin with
+     * the current input, case-insensitively. Matching entries are shown in a dropdown menu beneath
+     * the text field, and selecting a suggestion will populate the field and hide the menu.
+     */
+    /**
+     * Displays or hides a popup menu of autocomplete suggestions based on the current text.
+     * The window is shown if the current input has matches in the history and hidden otherwise.
+     */
+    private void showAutocompleteSuggestions() {
+        String text = idField.getText();
+        int lastComma = text.lastIndexOf(',');
+        int lastDash = text.lastIndexOf('-');
+        int lastSeparator = Math.max(lastComma, lastDash);
+
+        String currentPart = (lastSeparator == -1) ? text : text.substring(lastSeparator + 1);
+        String input = currentPart.toLowerCase().trim();
+
+        // Hide if input is empty
+        if (input.isEmpty()) {
+            suggestionWindow.setVisible(false);
+            return;
+        }
+
+        List<String> matches = inputHistory.stream()
+                .filter(s -> s.toLowerCase().startsWith(input))
+                .collect(Collectors.toList());
+        Collections.reverse(matches);
+
+        // Hide if no matches
+        if (matches.isEmpty()) {
+            suggestionWindow.setVisible(false);
+            return;
+        }
+
+        // Populate if there are matches
+        suggestionList.setListData(matches.toArray(new String[0]));
+        suggestionList.setVisibleRowCount(Math.min(matches.size(), 5)); // Limit height
+
+        // Position
+        Point fieldLocation = idField.getLocationOnScreen();
+        suggestionWindow.setLocation(fieldLocation.x, fieldLocation.y + idField.getHeight());
+        suggestionWindow.setSize(idField.getWidth(), suggestionList.getPreferredScrollableViewportSize().height + 6);
+
+        // Window is only visible if we have suggestions
+        if (!suggestionWindow.isVisible()) {
+            suggestionWindow.setVisible(true);
+        }
+    }
+
+    /**
+     * Loads previously entered autocomplete history from a file into the {@code inputHistory} collection.
+     * Each line in the file is trimmed and added as a distinct entry. If the history file does not exist,
+     * the method returns silently. If an I/O error occurs while reading, an error message is printed to {@code System.err}.
+     */
+    private void loadHistoryFromFile() {
+        if (!HISTORY_FILE.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(HISTORY_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                inputHistory.add(line.trim());
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load autocomplete history: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves the current {@code inputHistory} entries to a file, one per line.
+     * This method overwrites the existing history file with the current contents of {@code inputHistory}.
+     * If an I/O error occurs while writing, an error message is printed to {@code System.err}.
+     */
+    private void saveHistoryToFile() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(HISTORY_FILE))) {
+            for (String entry : inputHistory) {
+                writer.write(entry);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to save autocomplete history: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Attaches a KeyListener to the idField component to enable
+     * keyboard navigation and selection within the autocomplete suggestion list.
+     * Supports directional arrows and enter.
+     * This method is called during constructor.
+     */
+    private void setupIdFieldKeyListener() {
+        idField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (!suggestionWindow.isVisible()) return;
+
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_DOWN:
+                        int nextIndex = suggestionList.getSelectedIndex() + 1;
+                        if (nextIndex < suggestionList.getModel().getSize()) {
+                            suggestionList.setSelectedIndex(nextIndex);
+                            suggestionList.ensureIndexIsVisible(nextIndex);
+                        }
+                        break;
+                    case KeyEvent.VK_UP:
+                        int prevIndex = suggestionList.getSelectedIndex() - 1;
+                        if (prevIndex >= 0) {
+                            suggestionList.setSelectedIndex(prevIndex);
+                            suggestionList.ensureIndexIsVisible(prevIndex);
+                        }
+                        break;
+                    case KeyEvent.VK_ENTER:
+                        String selected = suggestionList.getSelectedValue();
+                        if (selected != null) {
+                            acceptSuggestion(selected);
+                        }
+                        e.consume(); // Prevent immediate form submission
+                        break;
+                    case KeyEvent.VK_ESCAPE:
+                        suggestionWindow.setVisible(false);
+                        break;
+                }
+            }
+        });
     }
 
     /**
