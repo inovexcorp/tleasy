@@ -23,6 +23,11 @@ public class Configuration {
     public static final String PROP_KEYSTORE_PASS = PROP_KEYSTORE + "_password";
     public static final String PROP_SKIP_CERT_VALIDATE = "skip_cert_validation";
     public static final String PROP_DARK_THEME = "dark_theme";
+    public static final String PROP_EXE_LOCATION = "exe_location";
+    public static final String PROP_SCENARIO_SAVE_FILE = "scenario_save_file";
+    public static final String PROP_STK_ACCESS_REPORT_FORMAT = "stk_access_report_format";
+    public static final String PROP_TIME_FILTER_MINUTES = "time_filter_minutes";
+    public static final String PROP_TIME_FILTER_SECONDS = "time_filter_seconds";
 
     private static Properties properties = new Properties();
 
@@ -50,10 +55,21 @@ public class Configuration {
         return path.isEmpty() ? null : new File(path);
     }
 
+    public static File getExeFile() {
+        String path = properties.getProperty(PROP_EXE_LOCATION, "C:\\Program Files\\AGI\\STK 12\\bin\\AgUiApplication.exe");
+        return path.isEmpty() ? null : new File(path);
+    }
+
+    public static File getScenarioSaveFile() {
+        String path = properties.getProperty(PROP_SCENARIO_SAVE_FILE, "");
+        return path.isEmpty() ? null : new File(path);
+    }
+
     public static File getKeyStoreFile() {
         String path = properties.getProperty(PROP_KEYSTORE, "");
         return path.isEmpty() ? null : new File(path);
     }
+
     public static char[] getKeystorePassword() {
         return properties.getProperty(PROP_KEYSTORE_PASS, "").toCharArray();
     }
@@ -64,6 +80,26 @@ public class Configuration {
 
     public static boolean isDarkTheme() {
         return Boolean.parseBoolean(properties.getProperty(PROP_DARK_THEME, "false"));
+    }
+
+    public static boolean isCsv() {
+        return Boolean.parseBoolean(properties.getProperty(PROP_STK_ACCESS_REPORT_FORMAT));
+    }
+
+    public static int getTimeFilterMinutes() {
+        try {
+            return Integer.parseInt(properties.getProperty(PROP_TIME_FILTER_MINUTES, "7"));
+        } catch (NumberFormatException e) {
+            return 7; // Default value if parsing fails
+        }
+    }
+
+    public static int getTimeFilterSeconds() {
+        try {
+            return Integer.parseInt(properties.getProperty(PROP_TIME_FILTER_SECONDS, "0"));
+        } catch (NumberFormatException e) {
+            return 0; // Default value if parsing fails
+        }
     }
 
     private static void load() {

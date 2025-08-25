@@ -8,6 +8,8 @@ import com.realmone.tleasy.ui.RegexInputValidator;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,6 +29,11 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.JComponent;
+import javax.swing.border.TitledBorder;
 
 public class ConfigSetup extends JDialog {
 
@@ -43,11 +50,16 @@ public class ConfigSetup extends JDialog {
     private final JPasswordField keystorePassField;
     private final JCheckBox skipCertValidationCheckBox;
     private final JCheckBox darkThemeCheckBox;
+    private final JTextField scenarioSaveFileField;
+    private final JTextField exeLocationField;
+    private final JCheckBox stkAccessReportToggle;
+    private final JSpinner minutesSpinner;
+    private final JSpinner secondsSpinner;
 
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
         setModal(true);
-        setSize(600, 300);
+        setSize(670, 420);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Fields for input
@@ -57,6 +69,23 @@ public class ConfigSetup extends JDialog {
         keystorePassField = new JPasswordField();
         skipCertValidationCheckBox = new JCheckBox("Skip SSL Certificate Validation");
         darkThemeCheckBox = new JCheckBox("Enable Dark Theme");
+        scenarioSaveFileField = new JTextField();
+        exeLocationField = new JTextField();
+        stkAccessReportToggle = new JCheckBox("Check for STK Access Report in .csv format, uncheck for .txt format");
+
+        // Minutes can go from 0 to 99, if you want that for some strange reason
+        SpinnerModel minutesModel = new SpinnerNumberModel(0, 0, 99, 1);
+        minutesSpinner = new JSpinner(minutesModel);
+        // Seconds must be between 0 and 59
+        SpinnerModel secondsModel = new SpinnerNumberModel(0, 0, 59, 1);
+        secondsSpinner = new JSpinner(secondsModel);
+
+        // Set a number format to ensure two digits are always displayed (e.g., "05").
+        JSpinner.NumberEditor minutesEditor = new JSpinner.NumberEditor(minutesSpinner, "00");
+        minutesSpinner.setEditor(minutesEditor);
+        JSpinner.NumberEditor secondsEditor = new JSpinner.NumberEditor(secondsSpinner, "00");
+        secondsSpinner.setEditor(secondsEditor);
+
         JRadioButton tleEndpointRadio = new JRadioButton("Endpoint");
         JRadioButton tleFileRadio = new JRadioButton("File");
 
@@ -87,7 +116,6 @@ public class ConfigSetup extends JDialog {
         fileRow.add(new JLabel("TLE File Path:"), BorderLayout.WEST);
         JPanel fileInputPanel = new JPanel(new BorderLayout(5, 5));
         fileInputPanel.add(tleFileField, BorderLayout.CENTER);
-        panel.add(fileRow);
         JButton fileBrowseButton = new JButton("Browse...");
         fileBrowseButton.addActionListener(e -> chooseFile(tleFileField));
         fileInputPanel.add(fileBrowseButton, BorderLayout.EAST);
@@ -138,7 +166,51 @@ public class ConfigSetup extends JDialog {
         darkThemeRow.add(darkThemeCheckBox);
         panel.add(darkThemeRow);
 
-        // Row 8: Buttons
+        // Create a new panel for STK-related settings with a titled border
+        JPanel stkPanel = new JPanel();
+        stkPanel.setLayout(new BoxLayout(stkPanel, BoxLayout.Y_AXIS));
+        stkPanel.setBorder(BorderFactory.createTitledBorder("STK Configuration"));
+        panel.add(stkPanel); // Add the new container panel to the main panel
+
+        // STK Row 1 (Row 8): Scenario Save File Path
+        JPanel scenarioSaveFileRow = new JPanel(new BorderLayout(5, 5));
+        scenarioSaveFileRow.add(new JLabel("Scenario Save File Path:"), BorderLayout.WEST);
+        JPanel scenarioSaveFileInputPanel = new JPanel(new BorderLayout(5, 5));
+        scenarioSaveFileInputPanel.add(scenarioSaveFileField, BorderLayout.CENTER);
+        JButton scenarioSaveFileBrowseButton = new JButton("Browse...");
+        scenarioSaveFileBrowseButton.addActionListener(e -> chooseFile(scenarioSaveFileField));
+        scenarioSaveFileInputPanel.add(scenarioSaveFileBrowseButton, BorderLayout.EAST);
+        scenarioSaveFileRow.add(scenarioSaveFileInputPanel, BorderLayout.CENTER);
+        stkPanel.add(scenarioSaveFileRow);
+
+        // STK Row 1 (Row 9): STK .exe File Path
+        JPanel exeLocationRow = new JPanel(new BorderLayout(5, 5));
+        exeLocationRow.add(new JLabel("STK File Path:"), BorderLayout.WEST);
+        JPanel exeLocationInputPanel = new JPanel(new BorderLayout(5, 5));
+        exeLocationInputPanel.add(exeLocationField, BorderLayout.CENTER);
+        JButton exeLocationBrowseButton = new JButton("Browse...");
+        exeLocationBrowseButton.addActionListener(e -> chooseFile(exeLocationField));
+        exeLocationInputPanel.add(exeLocationBrowseButton, BorderLayout.EAST);
+        exeLocationRow.add(exeLocationInputPanel, BorderLayout.CENTER);
+        stkPanel.add(exeLocationRow);
+
+        // STK Row 2 (Row 10): Toggle STK access report file format
+        stkAccessReportToggle.setSelected(Configuration.isCsv());
+        JPanel stkAccessReportFileFormatRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        stkAccessReportFileFormatRow.add(stkAccessReportToggle);
+        stkPanel.add(stkAccessReportFileFormatRow);
+
+        // STK Row 3 (Row 11): Time filter spinners
+        JPanel timeFilterRow = new JPanel(new BorderLayout(5, 5));
+        timeFilterRow.add(new JLabel("Minimum STK Access Time (MM:ss):"), BorderLayout.WEST);
+        JPanel timeSpinnerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+        timeSpinnerPanel.add(minutesSpinner);
+        timeSpinnerPanel.add(new JLabel(":"));
+        timeSpinnerPanel.add(secondsSpinner);
+        timeFilterRow.add(timeSpinnerPanel, BorderLayout.CENTER);
+        stkPanel.add(timeFilterRow);
+
+        // Final Row: Buttons
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton saveButton = new JButton("Save");
         saveButton.setEnabled(false);
@@ -194,6 +266,16 @@ public class ConfigSetup extends JDialog {
             keystorePassField.setText(new String(Configuration.getKeystorePassword()));
             skipCertValidationCheckBox.setSelected(Configuration.isSkipCertificateValidation());
         }
+        if (Configuration.getScenarioSaveFile() != null) {
+            scenarioSaveFileField.setText(Configuration.getScenarioSaveFile().getAbsolutePath());
+        }
+
+        if (Configuration.getExeFile() != null) {
+            exeLocationField.setText(Configuration.getExeFile().getAbsolutePath());
+        }
+
+        minutesSpinner.setValue(Configuration.getTimeFilterMinutes());
+        secondsSpinner.setValue(Configuration.getTimeFilterSeconds());
 
         // Add panel to dialog
         add(panel);
@@ -261,6 +343,12 @@ public class ConfigSetup extends JDialog {
         newConfiguration.setProperty(Configuration.PROP_KEYSTORE_PASS, new String(keystorePassField.getPassword()));
         newConfiguration.setProperty(Configuration.PROP_SKIP_CERT_VALIDATE, String.valueOf(skipCertValidationCheckBox.isSelected()));
         newConfiguration.setProperty(Configuration.PROP_DARK_THEME, String.valueOf(darkThemeCheckBox.isSelected()));
+        newConfiguration.setProperty(Configuration.PROP_SCENARIO_SAVE_FILE, scenarioSaveFileField.getText());
+        newConfiguration.setProperty(Configuration.PROP_EXE_LOCATION, exeLocationField.getText());
+        newConfiguration.setProperty(Configuration.PROP_STK_ACCESS_REPORT_FORMAT, String.valueOf(stkAccessReportToggle.isSelected()));
+        newConfiguration.setProperty(Configuration.PROP_TIME_FILTER_MINUTES, String.valueOf(minutesSpinner.getValue()));
+        newConfiguration.setProperty(Configuration.PROP_TIME_FILTER_SECONDS, String.valueOf(secondsSpinner.getValue()));
+
         return newConfiguration;
     }
 
@@ -279,27 +367,39 @@ public class ConfigSetup extends JDialog {
      *
      * @param comp The component to style
      */
-    private void applyDarkThemeToComponent(java.awt.Component comp) {
-        if (comp instanceof JPanel) {
-            comp.setBackground(java.awt.Color.DARK_GRAY);
-            for (java.awt.Component child : ((JPanel) comp).getComponents()) {
+    private void applyDarkThemeToComponent(Component comp) {
+        comp.setBackground(Color.DARK_GRAY);
+        comp.setForeground(Color.WHITE);
+
+        if (comp instanceof JPanel || comp instanceof JRadioButton || comp instanceof JCheckBox) {
+            // Check if the JPanel has a TitledBorder and set its title color
+            if (comp instanceof JPanel && ((JPanel) comp).getBorder() instanceof TitledBorder) {
+                TitledBorder titledBorder = (TitledBorder) ((JPanel) comp).getBorder();
+                titledBorder.setTitleColor(Color.WHITE);
+            }
+            // Container components need to have their children styled as well
+            for (Component child : ((JComponent) comp).getComponents()) {
                 applyDarkThemeToComponent(child);
             }
-        } else if (comp instanceof JLabel) {
-            comp.setForeground(Color.WHITE);
         } else if (comp instanceof JTextField) {
             comp.setBackground(Color.GRAY);
             comp.setForeground(Color.WHITE);
         } else if (comp instanceof JButton) {
             comp.setBackground(Color.GRAY);
             comp.setForeground(Color.DARK_GRAY);
-        } else if (comp instanceof JCheckBox) {
-            comp.setBackground(Color.DARK_GRAY);
-            comp.setForeground(Color.WHITE);
-        } else {
-            // For any other component, apply default dark theme colors
-            comp.setBackground(java.awt.Color.DARK_GRAY);
-            comp.setForeground(java.awt.Color.WHITE);
+        } else if (comp instanceof JSpinner) {
+            JComponent editor = ((JSpinner) comp).getEditor();
+            if (editor instanceof JSpinner.DefaultEditor) {
+                JTextField textField = ((JSpinner.DefaultEditor) editor).getTextField();
+                textField.setBackground(Color.GRAY);
+                textField.setForeground(Color.WHITE);
+            }
+            for (Component c : ((Container) comp).getComponents()) {
+                if (c instanceof JButton) {
+                    c.setBackground(Color.GRAY);
+                    c.setForeground(Color.DARK_GRAY);
+                }
+            }
         }
     }
 }

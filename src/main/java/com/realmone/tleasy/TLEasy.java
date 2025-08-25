@@ -3,6 +3,8 @@ package com.realmone.tleasy;
 import com.realmone.tleasy.rest.SimpleTleClient;
 import com.realmone.tleasy.tle.SimpleTleFilter;
 import com.realmone.tleasy.tle.TleUtils;
+import com.realmone.tleasy.util.AccessReportGenerator;
+import com.realmone.tleasy.util.StkCon;
 
 import java.awt.Color;
 import java.awt.Point;
@@ -26,7 +28,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +55,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JWindow;
 import javax.swing.JList;
+import javax.swing.JPanel;
 import javax.swing.JFileChooser;
 import javax.swing.ListSelectionModel;
 import javax.swing.JScrollPane;
@@ -60,6 +65,7 @@ import javax.swing.SwingWorker;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.util.Random;
 
 public class TLEasy extends JFrame {
 
@@ -72,6 +78,7 @@ public class TLEasy extends JFrame {
     private final JMenuBar menuBar;
     private final JMenu advMenu;
     private final JMenuItem configurationItem;
+    private final JButton openInStkButton;
 
     // Default Colors
     private Color defaultBackground;
@@ -84,15 +91,52 @@ public class TLEasy extends JFrame {
 
     // History/autocomplete
     private static final File HISTORY_FILE = new File(System.getProperty("user.home"), ".tleasy-history.txt");
-    // TODO: Update this to the correct path from Dan, same as Configuration.java
     private final JWindow suggestionWindow = new JWindow();
     private final JList<String> suggestionList = new JList<>();
     private static final int HISTORY_LIMIT = 30;
+
+    // STK
+    private StkCon stkConnection;
+    private static final String STK_EXECUTABLE_TO_USE = "AgUiApplication.exe";
 
     private static final JFileChooser fileChooser = new JFileChooser();
 
     static {
         fileChooser.setDialogTitle("Save TLE File");
+    }
+
+    private static final Random RANDOM = new Random();
+    private static final String[] SILLY_MESSAGES = {
+            "Reticulating splines...",
+            "Brewing coffee...",
+            "Dividing by zero...",
+            "Herding cats..."
+    };
+
+    /**
+     * Helper class to return multiple values from the SwingWorker
+     */
+    private static class StkWorkerResult {
+        final String message;
+        final String reportData;
+
+        StkWorkerResult(String message, String reportData) {
+            this.message = message;
+            this.reportData = reportData;
+        }
+    }
+
+    /**
+     * Helper class to hold the results of TLE file generation.
+     */
+    private static class TleFileData {
+        final File sanitizedFile;
+        final List<String> satelliteNames;
+
+        TleFileData(File sanitizedFile, List<String> satelliteNames) {
+            this.sanitizedFile = sanitizedFile;
+            this.satelliteNames = satelliteNames;
+        }
     }
 
     public TLEasy() {
@@ -109,6 +153,7 @@ public class TLEasy extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 saveHistoryToFile();
+                disconnectFromStk();
             }
         });
 
@@ -170,6 +215,10 @@ public class TLEasy extends JFrame {
         downloadButton = new JButton("Download");
         downloadButton.setEnabled(false);
 
+        // Create STK connection button disabled by default
+        openInStkButton = new JButton("Open in STK");
+        openInStkButton.setEnabled(false);
+
         // Create progress bar for download
         progressBar = new JProgressBar();
         progressBar.setIndeterminate(true);
@@ -179,13 +228,6 @@ public class TLEasy extends JFrame {
         statusLabel = new JLabel("Ready");
         statusLabel.setVisible(true);
 
-        // Enable hitting enter instead of clicking download, but not if autocomplete is open
-        idField.addActionListener(e -> {
-            if (!suggestionWindow.isVisible()) {
-                downloadButton.doClick();
-            }
-        });
-
         // Add components to frame
         add(new JLabel("Enter list of 5-digit ID(s) and/or range: "));
         add(idField);
@@ -193,7 +235,10 @@ public class TLEasy extends JFrame {
         helpLabel.setForeground(Color.GRAY);
         helpLabel.setFont(helpLabel.getFont().deriveFont(Font.ITALIC, 11f));
         add(helpLabel);
-        add(downloadButton);
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(downloadButton);
+        buttonPanel.add(openInStkButton);
+        add(buttonPanel);
         add(progressBar);
         add(statusLabel);
 
@@ -221,9 +266,16 @@ public class TLEasy extends JFrame {
             inputHistory.add(idField.getText().trim());
             progressBar.setVisible(true);
             downloadButton.setEnabled(false);
-            statusLabel.setText("Downloading...");
+            setStatus("Downloading...");
             performDownload();
         });
+
+        openInStkButton.addActionListener(e -> {
+            inputHistory.remove(idField.getText().trim());
+            inputHistory.add(idField.getText().trim());
+            generateAndOpenInStk();
+        });
+
         setColorMaps();
         toggleDarkTheme(Configuration.isDarkTheme());
     }
@@ -342,6 +394,7 @@ public class TLEasy extends JFrame {
     private void performDownload() {
         System.out.println("Performing download action");
         SwingWorker<Long, Void> worker = new SwingWorker<Long, Void>() {
+            private File saveFile;
             @Override
             protected Long doInBackground() throws Exception {
                 System.out.println("Setting up filter for: " + idField.getText());
@@ -403,16 +456,21 @@ public class TLEasy extends JFrame {
                         }
                     }
 
-                    if (count != null) {
-                        statusLabel.setText("Fetched " + count + " TLE entries");
-                    } else {
-                        statusLabel.setText("No TLE entries downloaded");
+                    if (count == null) {
+                        // This case handles when the user cancels the file save dialog.
+                        setStatus("Download cancelled.");
+                    } else if (count > 0) {
+                        // This is the successful case.
+                        setStatus("Fetched " + count + " TLE entries to file.");
+                    } else { // This case handles when the filter runs but finds 0 entries.
+                        displayErrorMessage("No TLE entries found for the specified IDs.");
+                        setStatus("No TLEs found.");
                     }
 
                 } catch (Exception ex) {
                     displayErrorMessage("Download failed: " + ex.getMessage());
                     ex.printStackTrace();
-                    statusLabel.setText("Download failed");
+                    setStatus("Download failed");
                 }
             }
         };
@@ -508,6 +566,7 @@ public class TLEasy extends JFrame {
         String input = idField.getText();
         boolean isValid = validateInput(input);
         downloadButton.setEnabled(isValid);
+        openInStkButton.setEnabled(isValid);
     }
 
     /**
@@ -566,10 +625,7 @@ public class TLEasy extends JFrame {
      * Suggestions are filtered from the stored input history to include only those that begin with
      * the current input, case-insensitively. Matching entries are shown in a dropdown menu beneath
      * the text field, and selecting a suggestion will populate the field and hide the menu.
-     */
-    /**
-     * Displays or hides a popup menu of autocomplete suggestions based on the current text.
-     * The window is shown if the current input has matches in the history and hidden otherwise.
+     *
      */
     private void showAutocompleteSuggestions() {
         String text = idField.getText();
@@ -606,7 +662,7 @@ public class TLEasy extends JFrame {
         suggestionWindow.setLocation(fieldLocation.x, fieldLocation.y + idField.getHeight());
         suggestionWindow.setSize(idField.getWidth(), suggestionList.getPreferredScrollableViewportSize().height + 6);
 
-        // Window is only visible if we have suggestions
+        // Window is only visible if there are suggestions
         if (!suggestionWindow.isVisible()) {
             suggestionWindow.setVisible(true);
         }
@@ -627,6 +683,441 @@ public class TLEasy extends JFrame {
             }
         } catch (IOException e) {
             System.err.println("Failed to load autocomplete history: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Checks if the STK process is currently running on Windows.
+     * @return true if the process is found, false otherwise.
+     */
+    private boolean isStkRunning() {
+        try {
+            Process process = Runtime.getRuntime().exec("tasklist /FI \"IMAGENAME eq " + STK_EXECUTABLE_TO_USE + "\"");
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains(STK_EXECUTABLE_TO_USE)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Ensures STK is running and establishes a connection, with a timeout.
+     * This method will launch STK if it's not already running, then poll
+     * for a successful TCP connection.
+     *
+     * @return A connected StkCon instance.
+     * @throws IOException if STK executable is not found or if the process times out.
+     * @throws InterruptedException if the thread is interrupted.
+     */
+    private StkCon launchAndConnectToStk() throws IOException, InterruptedException {
+        // Ensure the STK process is running.
+        if (!isStkRunning()) {
+            setStatus("STK not running. Launching now...");
+
+            String primaryPath = null;
+            // First try to get the primary path from configuration
+            File exeFile = Configuration.getExeFile();
+            if (exeFile != null) {
+                primaryPath = exeFile.getAbsolutePath();
+            }
+
+            String fallbackPath = "C:\\Program Files\\AGI\\STK 12\\bin\\" + STK_EXECUTABLE_TO_USE;
+            String pathToUse = null;
+
+            // 1. Try to find the executable at the primary path
+            if (primaryPath != null && !primaryPath.isEmpty() && new File(primaryPath).exists()) {
+                pathToUse = primaryPath;
+            }
+            // 2. If not found, try the fallback path
+            else if (new File(fallbackPath).exists()) {
+                pathToUse = fallbackPath;
+            }
+
+            // 3. If the executable was found in one of the paths, launch it
+            if (pathToUse != null) {
+                setStatus("Launching STK from: " + pathToUse);
+                new ProcessBuilder(pathToUse, "/pers", "STK").start();
+                // Give it a moment to create the process before we start polling.
+                Thread.sleep(3000);
+            } else {
+                // 4. If neither path worked, throw a comprehensive error
+                String primaryPathForError = (primaryPath != null) ? primaryPath : "[Not Configured]";
+                throw new IOException(STK_EXECUTABLE_TO_USE + " not found. Checked primary path: " +
+                        primaryPathForError + " and fallback path: " + fallbackPath);
+            }
+        }
+
+        // Now, poll for a successful connection.
+        int maxRetries = 15;  // 15 retries * 3 seconds = 45 seconds timeout
+        int interval = 3000; // 3 seconds
+
+        for (int i = 0; i < maxRetries; i++) {
+            setStatus("Waiting for STK to initialize... Attempt " + (i + 1) + "/" + maxRetries);
+
+            StkCon tempConnection = new StkCon();
+            if (tempConnection.connect() == 0) {
+                // Success! The TCP server is ready.
+                setStatus("Connection successful!");
+                return tempConnection;
+            }
+
+            // Wait before the next attempt.
+            Thread.sleep(interval);
+        }
+
+        // If we exit the loop, it means we timed out.
+        throw new IOException("Timed out after 45 seconds waiting for STK to become ready for connection.");
+    }
+
+    /**
+     * Orchestrates the entire process of generating a TLE file, loading it into STK,
+     * and generating an access report. This is the entry point for the SwingWorker.
+     */
+    private void generateAndOpenInStk() {
+        setStatus("Starting STK process...");
+        openInStkButton.setEnabled(false);
+        downloadButton.setEnabled(false);
+
+        SwingWorker<StkWorkerResult, Void> worker = new SwingWorker<StkWorkerResult, Void>() {
+            @Override
+            protected StkWorkerResult doInBackground() throws Exception {
+                try {
+                    // Generate and sanitize the TLE file
+                    TleFileData tleData = generateSanitizedTleFile(idField.getText());
+
+                    // Launch, Connect, and Load/Create Scenario
+                    String scenarioName = establishStkConnectionAndScenario();
+
+                    // Load all satellites into the scenario
+                    loadAllSatellites(scenarioName, tleData);
+
+                    // Create an instance of the new report generator class
+                    AccessReportGenerator reportGenerator = new AccessReportGenerator(stkConnection, TLEasy.this);
+
+                    // Generate the access report for all loaded satellites
+                    String reportData;
+                    if (Configuration.isCsv()) {
+                        reportData = reportGenerator.generateAccessReportCsv(scenarioName, tleData.satelliteNames);
+                    } else {
+                        reportData = reportGenerator.generateAccessReportTxt(scenarioName, tleData.satelliteNames);
+                    }
+
+                    String message = (reportData == null || reportData.isEmpty())
+                            ? "Loaded satellites, but no facility access found."
+                            : "Access report generated successfully.";
+
+                    return new StkWorkerResult(message, reportData);
+
+                } catch (Exception e) {
+                    // Ensure disconnection on any failure
+                    if (stkConnection != null) stkConnection.disconnect();
+                    throw e; // Re-throw to be caught by done()
+                } finally {
+                    // Always disconnect when the background task is finished
+                    if (stkConnection != null) stkConnection.disconnect();
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    StkWorkerResult result = get();
+                    setStatus(result.message);
+                    idField.setText("");
+
+                    if (result.reportData != null && !result.reportData.isEmpty()) {
+                        JFileChooser outputChooser = new JFileChooser();
+                        outputChooser.setDialogTitle("Save Access Report file");
+                        // Suggest a unique filename like "access_report (1).csv" if the original exists.
+                        String preferredFilename;
+                        if (Configuration.isCsv()) {
+                            preferredFilename = "access_report.csv";
+                        } else {
+                            preferredFilename = "access_report.txt";
+                        }
+                        File uniqueFile = getUniqueFileForSaving(outputChooser, preferredFilename);
+                        outputChooser.setSelectedFile(uniqueFile);
+                        int userSelection = outputChooser.showSaveDialog(TLEasy.this);
+                        if (userSelection == JFileChooser.APPROVE_OPTION) {
+                            File fileToSave = outputChooser.getSelectedFile();
+                            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
+                                writer.write(result.reportData);
+                                setStatus(fileToSave.getName() + " saved");
+                            } catch (IOException ex) {
+                                displayErrorMessage("Failed to save report: " + ex.getMessage());
+                            }
+                        }
+                    }
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    displayErrorMessage(cause.getMessage());
+                    setStatus("Error: " + cause.getMessage());
+                } finally {
+                    checkID();
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    /**
+     * Generates a unique File object in the JFileChooser's current directory
+     * to avoid overwriting existing files. If "basename.ext" exists, it will
+     * try "basename (1).ext", "basename (2).ext", and so on.
+     *
+     * @param chooser The JFileChooser instance, used to get the target directory.
+     * @param preferredFilename The desired initial filename (e.g., "access_report.csv").
+     * @return A File object with a unique name in the target directory.
+     */
+    private File getUniqueFileForSaving(JFileChooser chooser, String preferredFilename) {
+        File directory = chooser.getCurrentDirectory();
+        File file = new File(directory, preferredFilename);
+
+        // If the preferred name doesn't exist, use it right away.
+        if (!file.exists()) {
+            return file;
+        }
+
+        // Otherwise, separate the filename into its base and extension parts.
+        String baseName = preferredFilename;
+        String extension = "";
+        int dotIndex = preferredFilename.lastIndexOf('.');
+
+        // Ensure the dot is not the first character and an extension actually exists.
+        if (dotIndex > 0 && dotIndex < preferredFilename.length() - 1) {
+            baseName = preferredFilename.substring(0, dotIndex);
+            extension = preferredFilename.substring(dotIndex + 1);
+        }
+
+        int counter = 1;
+        // Loop, incrementing the counter, until we find a filename that doesn't exist.
+        while (file.exists()) {
+            String newFilename;
+            if (extension.isEmpty()) {
+                // Handle files with no extension.
+                newFilename = String.format("%s (%d)", baseName, counter);
+            } else {
+                newFilename = String.format("%s (%d).%s", baseName, counter, extension);
+            }
+            file = new File(directory, newFilename);
+            counter++;
+        }
+        return file;
+    }
+
+    /**
+     * Filters and sanitizes TLE data from the source into a temporary file.
+     * @param idFilter The user-provided filter string for NORAD IDs.
+     * @return A TleFileData object containing the sanitized file and list of satellite names.
+     * @throws Exception if no TLEs are found or file operations fail.
+     */
+    private TleFileData generateSanitizedTleFile(String idFilter) throws Exception {
+        setStatus("Generating temporary TLE file...");
+        TleFilter filter = SimpleTleFilter.builder()
+                .targetNoradIds(TleUtils.parseIdentifiers(idFilter))
+                .build();
+        File originalTempTleFile = File.createTempFile("tleasy_original_", ".tle");
+        originalTempTleFile.deleteOnExit();
+        try (InputStream data = client.fetchTle();
+             FileOutputStream output = new FileOutputStream(originalTempTleFile)) {
+            long count = filter.filter(data, output);
+            if (count == 0) {
+                throw new Exception("No matching TLEs found for the given IDs.");
+            }
+        }
+
+        File sanitizedTleFile = File.createTempFile("tleasy_sanitized_", ".tle");
+        sanitizedTleFile.deleteOnExit();
+        List<String> satelliteNames = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(originalTempTleFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(sanitizedTleFile))) {
+            String nameLine;
+            while ((nameLine = reader.readLine()) != null) {
+                String tleLine1 = reader.readLine();
+                String tleLine2 = reader.readLine();
+                if (tleLine1 != null && tleLine2 != null) {
+                    String sanitizedName = nameLine.trim().replace(" ", "_").replace("[","").replace("]","");
+                    satelliteNames.add(sanitizedName);
+                    writer.write(sanitizedName);
+                    writer.newLine();
+                    writer.write(tleLine1);
+                    writer.newLine();
+                    writer.write(tleLine2);
+                    writer.newLine();
+                }
+            }
+        }
+        return new TleFileData(sanitizedTleFile, satelliteNames);
+    }
+
+    /**
+     * Establishes a connection to STK and then loads or creates a scenario.
+     * This version uses a robust connection method that polls until STK is fully ready.
+     *
+     * @return The name of the loaded or created scenario.
+     * @throws Exception if a connection cannot be established or if scenario handling fails.
+     */
+    private String establishStkConnectionAndScenario() throws Exception {
+        // First, try a quick connection in case STK is already running and ready.
+        setStatus("Attempting to connect to STK...");
+        stkConnection = new StkCon();
+
+        // If the initial, simple connection attempt fails:
+        if (stkConnection.connect() != 0) {
+            // Start pollin'
+            setStatus("STK not found or not ready. Starting connection process...");
+            stkConnection = launchAndConnectToStk(); // This will return a valid connection or throw an exception.
+        }
+
+        // By this point, the connection is guaranteed to be established.
+        setStatus("STK Connection Established.");
+
+        String scenarioName;
+        String scenarioCheck = stkConnection.sendConCommand("CheckScenario /");
+        if (scenarioCheck.trim().equals("1")) {
+            // A scenario is already open, use it!
+            setStatus("Existing scenario detected. Using current scenario.");
+            scenarioName = extractScenario(stkConnection.sendConCommand("AllInstanceNames / Scenario"));
+        } else {
+            // No scenario is open, so load or create one.
+            File scenarioSaveFile = Configuration.getScenarioSaveFile();
+            // Check if a save file path was configured.
+            if (scenarioSaveFile != null) {
+                String scenarioPath = scenarioSaveFile.getAbsolutePath();
+                File scenarioFile = new File(scenarioPath);
+                scenarioName = scenarioFile.getName().replace(".sc", "");
+
+                if (scenarioFile.exists()) {
+                    setStatus("Loading existing scenario: " + scenarioName);
+                    stkConnection.sendConCommand("Load / Scenario \"" + scenarioPath + "\"");
+                } else {
+                    // If the file doesn't exist, create a new one with that name.
+                    setStatus("No scenario found. Creating new one: " + scenarioName);
+                    stkConnection.sendConCommand("New / Scenario " + scenarioName);
+                }
+            } else {
+                // If no save file was configured, just create a brand new scenario with a default name.
+                scenarioName = "TLEasy";
+                setStatus("No save file configured. Creating new scenario: " + scenarioName);
+                stkConnection.sendConCommand("New / Scenario " + scenarioName);
+            }
+
+            if (!stkConnection.getAckStatus()) {
+                throw new Exception("Failed to load or create scenario.");
+            }
+        }
+        return scenarioName;
+    }
+
+    /**
+     * Get scenario name helper method
+     */
+    private String extractScenario(String input) {
+        String[] parts = input.split("/Scenario/");
+        // the last non-empty entry will always contain the scenario name
+        String last = parts[parts.length - 1];
+        String scenarioName = last.split("/")[0]; // take only the first part
+        return scenarioName;
+    }
+
+    /**
+     * Loads all satellite objects into the specified STK scenario.
+     * @param scenarioName The name of the target scenario.
+     * @param tleData The TLE data containing satellite names and the file path.
+     * @throws Exception
+     */
+    private void loadAllSatellites(String scenarioName, TleFileData tleData) throws Exception {
+        setStatus("Loading all satellites...");
+        for (String satName : tleData.satelliteNames) {
+            // Create the satellite object using the wildcard path
+            stkConnection.sendConCommand("New / */Satellite " + satName);
+            if (!stkConnection.getAckStatus()) {
+                System.err.println("Warning: Failed to create satellite for " + satName);
+                continue; // Skip to next satellite if creation fails
+            }
+
+            // Set the satellite's state from the TLE file
+            String sscNumber = getSscNumberFromFile(tleData.sanitizedFile, satName);
+            if (sscNumber.isEmpty()) {
+                System.err.println("Warning: Could not find SSC number for " + satName);
+                continue;
+            }
+            // Construct the explicit, full path for the SetState command
+            String setStateFullPath = String.format("/Scenario/%s/Satellite/%s", scenarioName, satName);
+
+            String setStateCommand = String.format(
+                    "SetState %s SGP4 UseScenarioInterval 60.0 %s TLESource Automatic Source File \"%s\"",
+                    setStateFullPath,
+                    sscNumber,
+                    tleData.sanitizedFile.getAbsolutePath()
+            );
+            stkConnection.sendConCommand(setStateCommand);
+            if (!stkConnection.getAckStatus()) {
+                System.err.println("Warning: Failed to set state for satellite " + satName);
+            }
+        }
+        // Add a small pause after all satellites are loaded to ensure STK is fully caught up
+        setStatus("Finalizing satellite propagation...");
+        Thread.sleep(1000); // Wait 1 second
+    }
+
+    /**
+     * A helper method to retrieve the SSC number for a satellite from a TLE file.
+     * @param tleFile The file to search in.
+     * @param satelliteName The name of the satellite.
+     * @return The 5-digit SSC number as a String, or an empty string if not found.
+     * @throws IOException
+     */
+    private String getSscNumberFromFile(File tleFile, String satelliteName) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(tleFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().equals(satelliteName)) {
+                    String tleLine1 = reader.readLine();
+                    if (tleLine1 != null && tleLine1.length() >= 7) {
+                        return tleLine1.substring(2, 7).trim();
+                    }
+                }
+            }
+        }
+        return ""; // Not found
+    }
+
+    /**
+     * Updates the status message. There is a 1 in 1000 chance
+     * it will display a silly message instead.
+     * @param message The intended status message.
+     */
+    public void setStatus(String message) {
+        String finalMessage;
+
+        if (RANDOM.nextInt(1000) == 0) {
+            // Pick a random silly message from our array
+            int index = RANDOM.nextInt(SILLY_MESSAGES.length);
+            finalMessage = SILLY_MESSAGES[index];
+        } else {
+            // Otherwise, use the normal message
+            finalMessage = message;
+        }
+        statusLabel.setText(finalMessage);
+    }
+
+    /**
+     * Disconnects the socket connection to STK.
+     */
+    public void disconnectFromStk() {
+        if (this.stkConnection != null) {
+            this.stkConnection.disconnect();
+            this.stkConnection = null;
         }
     }
 
@@ -704,15 +1195,17 @@ public class TLEasy extends JFrame {
 
     /**
      * Entry point for the application. Creates the TleClient and starts up the Swing application.
-     *
      * @param args Arguments into the main method
      */
     public static void main(String... args) {
-        SwingUtilities.invokeLater(() -> {
-            configureAndSetupClient(true, true);
-            TLEasy m = new TLEasy();
-            m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            m.setVisible(true);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                configureAndSetupClient(true, true);
+                TLEasy m = new TLEasy();
+                m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                m.setVisible(true);
+            }
         });
     }
 }
