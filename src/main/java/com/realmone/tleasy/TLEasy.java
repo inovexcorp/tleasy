@@ -915,7 +915,10 @@ public class TLEasy extends JFrame {
     }
 
     /**
-     * Filters and sanitizes TLE data from the source into a temporary file.
+     * Filters and sanitizes TLE data from the source into a temporary file. This version
+     * is robust and can handle both 2-line and 3-line TLE formats, generating default
+     * names for satellites when the name line is missing.
+     *
      * @param idFilter The user-provided filter string for NORAD IDs.
      * @return A TleFileData object containing the sanitized file and list of satellite names.
      * @throws Exception if no TLEs are found or file operations fail.
@@ -940,22 +943,78 @@ public class TLEasy extends JFrame {
         List<String> satelliteNames = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(originalTempTleFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(sanitizedTleFile))) {
-            String nameLine;
-            while ((nameLine = reader.readLine()) != null) {
-                String tleLine1 = reader.readLine();
-                String tleLine2 = reader.readLine();
-                if (tleLine1 != null && tleLine2 != null) {
-                    String sanitizedName = nameLine.trim().replace(" ", "_").replace("[","").replace("]","");
-                    satelliteNames.add(sanitizedName);
-                    writer.write(sanitizedName);
-                    writer.newLine();
-                    writer.write(tleLine1);
-                    writer.newLine();
-                    writer.write(tleLine2);
-                    writer.newLine();
+
+            // Read all lines into a list to process them in chunks
+            List<String> lines = reader.lines().collect(Collectors.toList());
+            int i = 0;
+            while (i < lines.size()) {
+                String currentLine = lines.get(i).trim();
+
+                // Skip any blank lines that might separate TLE chunks
+                if (currentLine.isEmpty()) {
+                    i++;
+                    continue;
                 }
+
+                String nameLine;
+                String tleLine1;
+                String tleLine2;
+
+                // Case 1: The current line is a TLE line 1 (2-line format or missing name)
+                if (currentLine.startsWith("1 ")) {
+                    tleLine1 = currentLine;
+
+                    // The next line must be TLE line 2
+                    if (i + 1 < lines.size() && lines.get(i + 1).trim().startsWith("2 ")) {
+                        tleLine2 = lines.get(i + 1).trim();
+                        // Extract ID from line 1 to generate a default name
+                        String noradId = tleLine1.substring(2, 7).trim();
+                        nameLine = "tle-" + noradId;
+                        i += 2; // We have consumed two lines from the list
+                    } else {
+                        // Malformed entry: Found a Line 1 without a following Line 2. Skip it.
+                        System.err.println("Warning: Found TLE Line 1 without a following Line 2. Skipping: " + tleLine1);
+                        i++;
+                        continue;
+                    }
+                }
+                // Case 2: The current line is a name (standard 3-line format)
+                else {
+                    nameLine = currentLine;
+
+                    // The next two lines must be TLE line 1 and line 2
+                    if (i + 2 < lines.size() &&
+                            lines.get(i + 1).trim().startsWith("1 ") &&
+                            lines.get(i + 2).trim().startsWith("2 ")) {
+
+                        tleLine1 = lines.get(i + 1).trim();
+                        tleLine2 = lines.get(i + 2).trim();
+                        i += 3; // We have consumed three lines from the list
+                    } else {
+                        // Malformed entry: A name line wasn't followed by TLE lines. Skip it.
+                        System.err.println("Warning: Found a line that wasn't a TLE Line 1 and wasn't followed by a valid TLE set. Skipping: " + nameLine);
+                        i++;
+                        continue;
+                    }
+                }
+
+                String sanitizedName = nameLine.trim().replace(" ", "_").replace("[", "").replace("]", "");
+                satelliteNames.add(sanitizedName);
+
+                writer.write(sanitizedName);
+                writer.newLine();
+                writer.write(tleLine1);
+                writer.newLine();
+                writer.write(tleLine2);
+                writer.newLine();
             }
         }
+
+        // Final check to ensure we actually processed something from the file
+        if (satelliteNames.isEmpty()) {
+            throw new Exception("The TLE data was present but could not be parsed into valid satellite entries.");
+        }
+
         return new TleFileData(sanitizedTleFile, satelliteNames);
     }
 
