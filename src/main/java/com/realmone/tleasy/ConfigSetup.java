@@ -52,14 +52,15 @@ public class ConfigSetup extends JDialog {
     private final JCheckBox darkThemeCheckBox;
     private final JTextField scenarioSaveFileField;
     private final JTextField exeLocationField;
-    private final JCheckBox stkAccessReportToggle;
     private final JSpinner minutesSpinner;
     private final JSpinner secondsSpinner;
+    private final JCheckBox filterOldTleCheckBox;
+    private final JCheckBox filterAccessTimeCheckBox;
 
     public ConfigSetup(boolean exitOnClose) {
         setTitle("Initial Configuration Setup");
         setModal(true);
-        setSize(670, 420);
+        setSize(670, 480);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Fields for input
@@ -71,7 +72,6 @@ public class ConfigSetup extends JDialog {
         darkThemeCheckBox = new JCheckBox("Enable Dark Theme");
         scenarioSaveFileField = new JTextField();
         exeLocationField = new JTextField();
-        stkAccessReportToggle = new JCheckBox("Check for STK Access Report in .csv format, uncheck for .txt format");
 
         // Minutes can go from 0 to 99, if you want that for some strange reason
         SpinnerModel minutesModel = new SpinnerNumberModel(0, 0, 99, 1);
@@ -194,13 +194,7 @@ public class ConfigSetup extends JDialog {
         exeLocationRow.add(exeLocationInputPanel, BorderLayout.CENTER);
         stkPanel.add(exeLocationRow);
 
-        // STK Row 2 (Row 10): Toggle STK access report file format
-        stkAccessReportToggle.setSelected(Configuration.isCsv());
-        JPanel stkAccessReportFileFormatRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        stkAccessReportFileFormatRow.add(stkAccessReportToggle);
-        stkPanel.add(stkAccessReportFileFormatRow);
-
-        // STK Row 3 (Row 11): Time filter spinners
+        // STK Row 2 (Row 10): Time filter spinners
         JPanel timeFilterRow = new JPanel(new BorderLayout(5, 5));
         timeFilterRow.add(new JLabel("Minimum STK Access Time (MM:ss):"), BorderLayout.WEST);
         JPanel timeSpinnerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
@@ -209,6 +203,19 @@ public class ConfigSetup extends JDialog {
         timeSpinnerPanel.add(secondsSpinner);
         timeFilterRow.add(timeSpinnerPanel, BorderLayout.CENTER);
         stkPanel.add(timeFilterRow);
+
+        // STK Row 3 (Row 11): Julian Date (Old TLE) filter
+        filterOldTleCheckBox = new JCheckBox("Label data older than 24 hours");
+        JPanel oldTleFilterRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        oldTleFilterRow.add(filterOldTleCheckBox);
+        stkPanel.add(oldTleFilterRow);
+
+        // STK Row 4 (Row 12): Future Access Time filter
+        filterAccessTimeCheckBox = new JCheckBox("Filter out 24-hour+ accesses");
+        JPanel accessTimeFilterRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        accessTimeFilterRow.add(filterAccessTimeCheckBox);
+        stkPanel.add(accessTimeFilterRow);
+
 
         // Final Row: Buttons
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -276,6 +283,8 @@ public class ConfigSetup extends JDialog {
 
         minutesSpinner.setValue(Configuration.getTimeFilterMinutes());
         secondsSpinner.setValue(Configuration.getTimeFilterSeconds());
+        filterOldTleCheckBox.setSelected(Configuration.isJulianDateFilterEnabled());
+        filterAccessTimeCheckBox.setSelected(Configuration.isAccessTimeFilterEnabled());
 
         // Add panel to dialog
         add(panel);
@@ -345,9 +354,10 @@ public class ConfigSetup extends JDialog {
         newConfiguration.setProperty(Configuration.PROP_DARK_THEME, String.valueOf(darkThemeCheckBox.isSelected()));
         newConfiguration.setProperty(Configuration.PROP_SCENARIO_SAVE_FILE, scenarioSaveFileField.getText());
         newConfiguration.setProperty(Configuration.PROP_EXE_LOCATION, exeLocationField.getText());
-        newConfiguration.setProperty(Configuration.PROP_STK_ACCESS_REPORT_FORMAT, String.valueOf(stkAccessReportToggle.isSelected()));
         newConfiguration.setProperty(Configuration.PROP_TIME_FILTER_MINUTES, String.valueOf(minutesSpinner.getValue()));
         newConfiguration.setProperty(Configuration.PROP_TIME_FILTER_SECONDS, String.valueOf(secondsSpinner.getValue()));
+        newConfiguration.setProperty(Configuration.PROP_JULIAN_DATE_FILTER, String.valueOf(filterOldTleCheckBox.isSelected()));
+        newConfiguration.setProperty(Configuration.PROP_ACCESS_TIME_FILTER, String.valueOf(filterAccessTimeCheckBox.isSelected()));
 
         return newConfiguration;
     }

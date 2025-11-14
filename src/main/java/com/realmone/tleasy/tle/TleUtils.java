@@ -2,6 +2,7 @@ package com.realmone.tleasy.tle;
 
 import lombok.experimental.UtilityClass;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -73,5 +74,29 @@ public class TleUtils {
             }
             return numbers;
         }
+    }
+
+    /**
+     * Parses the epoch from TLE Line 1 into a LocalDateTime object.
+     * TLE epoch format is YYDDD.FFFFFFFF.
+     * @param tleLine1 The first line of the TLE data.
+     * @return A LocalDateTime object representing the TLE epoch in UTC.
+     */
+    public static LocalDateTime parseTleEpoch(String tleLine1) {
+        String epochStr = tleLine1.substring(18, 32); // Epoch Year, Day, and fractional Day
+        int year = Integer.parseInt(epochStr.substring(0, 2));
+        // TLE convention: years < 57 are 2000s, years >= 57 are 1900s
+        year += (year < 57) ? 2000 : 1900;
+
+        double dayOfYearWithFraction = Double.parseDouble(epochStr.substring(2));
+        int dayOfYear = (int) dayOfYearWithFraction;
+        double fractionOfDay = dayOfYearWithFraction - dayOfYear;
+
+        // There are 86,400 seconds in a day.
+        long secondsIntoDay = (long) (fractionOfDay * 86400.0);
+
+        return LocalDateTime.of(year, 1, 1, 0, 0)
+                .withDayOfYear(dayOfYear)
+                .plusSeconds(secondsIntoDay);
     }
 }
