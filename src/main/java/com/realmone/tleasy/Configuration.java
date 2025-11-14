@@ -25,9 +25,10 @@ public class Configuration {
     public static final String PROP_DARK_THEME = "dark_theme";
     public static final String PROP_EXE_LOCATION = "exe_location";
     public static final String PROP_SCENARIO_SAVE_FILE = "scenario_save_file";
-    public static final String PROP_STK_ACCESS_REPORT_FORMAT = "stk_access_report_format";
     public static final String PROP_TIME_FILTER_MINUTES = "time_filter_minutes";
     public static final String PROP_TIME_FILTER_SECONDS = "time_filter_seconds";
+    public static final String PROP_JULIAN_DATE_FILTER = "julian_date_filter";
+    public static final String PROP_ACCESS_TIME_FILTER = "access_time_filter";
 
     private static Properties properties = new Properties();
 
@@ -82,10 +83,6 @@ public class Configuration {
         return Boolean.parseBoolean(properties.getProperty(PROP_DARK_THEME, "false"));
     }
 
-    public static boolean isCsv() {
-        return Boolean.parseBoolean(properties.getProperty(PROP_STK_ACCESS_REPORT_FORMAT));
-    }
-
     public static int getTimeFilterMinutes() {
         try {
             return Integer.parseInt(properties.getProperty(PROP_TIME_FILTER_MINUTES, "7"));
@@ -100,6 +97,14 @@ public class Configuration {
         } catch (NumberFormatException e) {
             return 0; // Default value if parsing fails
         }
+    }
+
+    public static boolean isJulianDateFilterEnabled() {
+        return Boolean.parseBoolean(properties.getProperty(PROP_JULIAN_DATE_FILTER, "false"));
+    }
+
+    public static boolean isAccessTimeFilterEnabled() {
+        return Boolean.parseBoolean(properties.getProperty(PROP_ACCESS_TIME_FILTER, "false"));
     }
 
     private static void load() {

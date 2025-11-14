@@ -66,6 +66,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.util.Random;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 public class TLEasy extends JFrame {
 
@@ -119,10 +121,12 @@ public class TLEasy extends JFrame {
     private static class StkWorkerResult {
         final String message;
         final String reportData;
+        final int filteredAccessCount;
 
-        StkWorkerResult(String message, String reportData) {
+        StkWorkerResult(String message, String reportData, int filteredAccessCount) {
             this.message = message;
             this.reportData = reportData;
+            this.filteredAccessCount = filteredAccessCount;
         }
     }
 
@@ -132,10 +136,24 @@ public class TLEasy extends JFrame {
     private static class TleFileData {
         final File sanitizedFile;
         final List<String> satelliteNames;
+        final int filteredTleCount;
+        final Map<String, String> satelliteColorMap;
 
-        TleFileData(File sanitizedFile, List<String> satelliteNames) {
+        TleFileData(File sanitizedFile, List<String> satelliteNames, int filteredTleCount, Map<String, String> satelliteColorMap) {
             this.sanitizedFile = sanitizedFile;
             this.satelliteNames = satelliteNames;
+            this.filteredTleCount = filteredTleCount;
+            this.satelliteColorMap = satelliteColorMap;
+        }
+    }
+
+    public static class AccessReportResult {
+        final String csvData;
+        final int filteredAccessCount;
+
+        public AccessReportResult(String csvData, int filteredAccessCount) {
+            this.csvData = csvData;
+            this.filteredAccessCount = filteredAccessCount;
         }
     }
 
@@ -304,6 +322,76 @@ public class TLEasy extends JFrame {
                 darkColors.put(comp, new Color[]{Color.DARK_GRAY, Color.GRAY});
             }
         }
+    }
+
+    /**
+     * The "magic number" to generate perceptually distinct hues for convertHueToHex().
+     */
+    private static final float GOLDEN_RATIO_CONJUGATE = 0.618033988749895f;
+
+    /**
+     * Helper method to convert a hue (0.0-1.0) into a vivid STK-compatible hex string.
+     * @param hue The hue to convert.
+     * @return A string (e.g., "#33CC99").
+     */
+    private String convertHueToHex(float hue) {
+        // Use high saturation (0.9) and high brightness (0.9) for vivid, distinct colors
+        Color newColor = Color.getHSBColor(hue, 0.9f, 0.9f);
+
+        // Convert the java.awt.Color object to an STK-compatible hex string
+        // (getRGB() includes an alpha channel, so we mask it with 0xFFFFFF)
+        return String.format("#%06X", (newColor.getRGB() & 0xFFFFFF));
+    }
+
+    /**
+     * Parses the user's raw input string to map satellite IDs to a generated
+     * color for each "group" (a range OR a comma-separated sequential list).
+     *
+     * @param rawInput The text from the idField.
+     * @return A Map where the key is the NORAD ID string and the value is the hex color string.
+     */
+    private Map<String, String> buildSatIdToColorMap(String rawInput) {
+        Map<String, String> idToColor = new HashMap<>();
+
+        // 1. Parse all IDs from the input string
+        Set<Integer> allIds = new HashSet<>();
+        String[] parts = rawInput.trim().split("\\s*,\\s*");
+        for (String part : parts) {
+            if (part.matches("\\d{5}\\s*-\\s*\\d{5}")) {
+                String[] rangeParts = part.split("\\s*-\\s*");
+                int start = Integer.parseInt(rangeParts[0]);
+                int end = Integer.parseInt(rangeParts[1]);
+                if (start <= end) {
+                    allIds.addAll(getNumbersBetween(start, end));
+                }
+            } else if (part.matches("\\d{5}")) {
+                allIds.add(Integer.parseInt(part));
+            }
+        }
+
+        // 2. Convert to a sorted list
+        List<Integer> sortedIds = new ArrayList<>(allIds);
+        Collections.sort(sortedIds);
+
+        // 3. Iterate the sorted list and assign perceptually distinct colors to groups
+        float currentHue = RANDOM.nextFloat(); // Start with a random hue
+        String currentGroupColor = convertHueToHex(currentHue);
+        int lastId = -1;
+
+        for (int id : sortedIds) {
+            // If the current ID is not sequential to the last one, generate a new distinct color
+            if (id != lastId + 1) {
+                // Add the golden ratio conjugate to the hue and wrap around (using % 1.0f)
+                // This guarantees the next color is visually distinct from the previous one.
+                currentHue = (currentHue + GOLDEN_RATIO_CONJUGATE) % 1.0f;
+                currentGroupColor = convertHueToHex(currentHue);
+            }
+
+            idToColor.put(String.valueOf(id), currentGroupColor);
+            lastId = id; // Update the lastId for the next loop
+        }
+
+        return idToColor;
     }
 
     /**
@@ -789,8 +877,38 @@ public class TLEasy extends JFrame {
             @Override
             protected StkWorkerResult doInBackground() throws Exception {
                 try {
-                    // Generate and sanitize the TLE file
-                    TleFileData tleData = generateSanitizedTleFile(idField.getText());
+                    File tleSourceFile = Configuration.getTleFile();
+                    // This check only runs if a local TLE file is configured (not an endpoint)
+                    if (tleSourceFile != null && tleSourceFile.exists()) {
+                        long lastModifiedMillis = tleSourceFile.lastModified();
+                        // 24 hours in milliseconds
+                        final long ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
+                        long oneDayAgoMillis = System.currentTimeMillis() - ONE_DAY_MILLIS;
+
+                        if (lastModifiedMillis < oneDayAgoMillis) {
+                            // Show the warning on the main UI thread
+                            SwingUtilities.invokeLater(() ->
+                                    JOptionPane.showMessageDialog(TLEasy.this,
+                                            "Warning: The source TLE file '" + tleSourceFile.getName() + "'\n" +
+                                                    "has not been modified in over 24 hours.",
+                                            "Stale TLE File Warning",
+                                            JOptionPane.WARNING_MESSAGE)
+                            );
+                        }
+                    }
+                    Map<String, String> idToColorMap = buildSatIdToColorMap(idField.getText());
+                    // Generate and sanitize the TLE file, passing the color map in
+                    TleFileData tleData = generateSanitizedTleFile(idField.getText(), idToColorMap);
+                    // Notify the user if any TLEs were filtered
+                    if (tleData.filteredTleCount > 0) {
+                        final int count = tleData.filteredTleCount;
+                        SwingUtilities.invokeLater(() ->
+                                JOptionPane.showMessageDialog(TLEasy.this,
+                                        "Warning: " + count + " TLE entries are older than 24 hours.",
+                                        "Old TLE Warning",
+                                        JOptionPane.WARNING_MESSAGE)
+                        );
+                    }
 
                     // Launch, Connect, and Load/Create Scenario
                     String scenarioName = establishStkConnectionAndScenario();
@@ -802,18 +920,20 @@ public class TLEasy extends JFrame {
                     AccessReportGenerator reportGenerator = new AccessReportGenerator(stkConnection, TLEasy.this);
 
                     // Generate the access report for all loaded satellites
-                    String reportData;
-                    if (Configuration.isCsv()) {
-                        reportData = reportGenerator.generateAccessReportCsv(scenarioName, tleData.satelliteNames);
-                    } else {
-                        reportData = reportGenerator.generateAccessReportTxt(scenarioName, tleData.satelliteNames);
-                    }
+                    AccessReportResult reportResult = reportGenerator.generateAccessReportCsv(
+                            scenarioName,
+                            tleData.satelliteNames,
+                            tleData.sanitizedFile
+                    );
+
+                    String reportData = reportResult.csvData;
+                    int filteredAccessCount = reportResult.filteredAccessCount;
 
                     String message = (reportData == null || reportData.isEmpty())
                             ? "Loaded satellites, but no facility access found."
                             : "Access report generated successfully.";
 
-                    return new StkWorkerResult(message, reportData);
+                    return new StkWorkerResult(message, reportData, filteredAccessCount);
 
                 } catch (Exception e) {
                     // Ensure disconnection on any failure
@@ -832,16 +952,19 @@ public class TLEasy extends JFrame {
                     setStatus(result.message);
                     idField.setText("");
 
+                    if (result.filteredAccessCount > 0) {
+                        JOptionPane.showMessageDialog(TLEasy.this,
+                                result.filteredAccessCount + " future accesses were filtered from the report.",
+                                "Access Filter Applied",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    }
+
                     if (result.reportData != null && !result.reportData.isEmpty()) {
                         JFileChooser outputChooser = new JFileChooser();
                         outputChooser.setDialogTitle("Save Access Report file");
                         // Suggest a unique filename like "access_report (1).csv" if the original exists.
                         String preferredFilename;
-                        if (Configuration.isCsv()) {
-                            preferredFilename = "access_report.csv";
-                        } else {
-                            preferredFilename = "access_report.txt";
-                        }
+                        preferredFilename = "access_report.csv";
                         File uniqueFile = getUniqueFileForSaving(outputChooser, preferredFilename);
                         outputChooser.setSelectedFile(uniqueFile);
                         int userSelection = outputChooser.showSaveDialog(TLEasy.this);
@@ -923,7 +1046,7 @@ public class TLEasy extends JFrame {
      * @return A TleFileData object containing the sanitized file and list of satellite names.
      * @throws Exception if no TLEs are found or file operations fail.
      */
-    private TleFileData generateSanitizedTleFile(String idFilter) throws Exception {
+    private TleFileData generateSanitizedTleFile(String idFilter, Map<String, String> idToColorMap) throws Exception {
         setStatus("Generating temporary TLE file...");
         TleFilter filter = SimpleTleFilter.builder()
                 .targetNoradIds(TleUtils.parseIdentifiers(idFilter))
@@ -941,6 +1064,10 @@ public class TLEasy extends JFrame {
         File sanitizedTleFile = File.createTempFile("tleasy_sanitized_", ".tle");
         sanitizedTleFile.deleteOnExit();
         List<String> satelliteNames = new ArrayList<>();
+        Map<String, String> satelliteColorMap = new HashMap<>();
+        int filteredCount = 0;
+        final boolean isJulianFilterEnabled = Configuration.isJulianDateFilterEnabled();
+        final LocalDateTime julianDateLimit = LocalDateTime.now(ZoneOffset.UTC).minusDays(1);
         try (BufferedReader reader = new BufferedReader(new FileReader(originalTempTleFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(sanitizedTleFile))) {
 
@@ -997,9 +1124,22 @@ public class TLEasy extends JFrame {
                         continue;
                     }
                 }
+                String noradId = tleLine1.substring(2, 7).trim();
+
+                if (isJulianFilterEnabled) {
+                    LocalDateTime tleEpoch = TleUtils.parseTleEpoch(tleLine1);
+                    if (tleEpoch.isBefore(julianDateLimit)) {
+                        filteredCount++;
+                    }
+                }
 
                 String sanitizedName = nameLine.trim().replace(" ", "_").replace("[", "").replace("]", "");
                 satelliteNames.add(sanitizedName);
+
+                // If this ID has a group color, map it to the satellite's name
+                if (idToColorMap.containsKey(noradId)) {
+                    satelliteColorMap.put(sanitizedName, idToColorMap.get(noradId));
+                }
 
                 writer.write(sanitizedName);
                 writer.newLine();
@@ -1015,7 +1155,7 @@ public class TLEasy extends JFrame {
             throw new Exception("The TLE data was present but could not be parsed into valid satellite entries.");
         }
 
-        return new TleFileData(sanitizedTleFile, satelliteNames);
+        return new TleFileData(sanitizedTleFile, satelliteNames, filteredCount, satelliteColorMap);
     }
 
     /**
@@ -1097,33 +1237,50 @@ public class TLEasy extends JFrame {
     private void loadAllSatellites(String scenarioName, TleFileData tleData) throws Exception {
         setStatus("Loading all satellites...");
         for (String satName : tleData.satelliteNames) {
-            // Create the satellite object using the wildcard path
+
+            // Create the satellite object
             stkConnection.sendConCommand("New / */Satellite " + satName);
             if (!stkConnection.getAckStatus()) {
                 System.err.println("Warning: Failed to create satellite for " + satName);
                 continue; // Skip to next satellite if creation fails
             }
 
-            // Set the satellite's state from the TLE file
+            // Build the explicit path for this satellite
+            String satPath = String.format("/Scenario/%s/Satellite/%s", scenarioName, satName);
+
+            // Get the SSC number
             String sscNumber = getSscNumberFromFile(tleData.sanitizedFile, satName);
             if (sscNumber.isEmpty()) {
                 System.err.println("Warning: Could not find SSC number for " + satName);
                 continue;
             }
-            // Construct the explicit, full path for the SetState command
-            String setStateFullPath = String.format("/Scenario/%s/Satellite/%s", scenarioName, satName);
 
+            // Propagate the satellite's orbit
             String setStateCommand = String.format(
                     "SetState %s SGP4 UseScenarioInterval 60.0 %s TLESource Automatic Source File \"%s\"",
-                    setStateFullPath,
+                    satPath,
                     sscNumber,
                     tleData.sanitizedFile.getAbsolutePath()
             );
             stkConnection.sendConCommand(setStateCommand);
             if (!stkConnection.getAckStatus()) {
-                System.err.println("Warning: Failed to set state for satellite " + satName);
+                System.err.println("Warning: Failed to set state for " + satName);
+                continue; // If SetState fails, skip coloring
+            }
+
+            // Check if this satellite has a color assigned in the map
+            if (tleData.satelliteColorMap.containsKey(satName)) {
+                // Get the color (e.g., "Red", "Green", "255 0 255") from the map
+                String color = tleData.satelliteColorMap.get(satName);
+                String setColorCmd = String.format("Graphics %s SetColor %s", satPath, color);
+                stkConnection.sendConCommand(setColorCmd);
+
+                if (!stkConnection.getAckStatus()) {
+                    System.err.println("Warning: Failed to set color for " + satName);
+                }
             }
         }
+
         // Add a small pause after all satellites are loaded to ensure STK is fully caught up
         setStatus("Finalizing satellite propagation...");
         Thread.sleep(1000); // Wait 1 second
