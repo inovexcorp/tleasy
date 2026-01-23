@@ -1,0 +1,202 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\tleasyplugincontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyplugincontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\tleasyconfig.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyconfig.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\tleasyplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|c:\\users\\admin\\source\\repos\\tleasyplugin\\tleasyplugin\\tleasyplugincontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyplugincontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|c:\\users\\admin\\source\\repos\\tleasyplugin\\tleasyplugin\\tleasyplugincontrol.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyplugincontrol.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\tleasyconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|c:\\users\\admin\\source\\repos\\tleasyplugin\\tleasyplugin\\util\\accessreportresult.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\util\\accessreportresult.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\tleasyconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\tleasyconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\util\\tlefileprocessor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\util\\tlefileprocessor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\util\\satelliteloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\util\\satelliteloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\tleasyplugin\\util\\tleutils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EEAEC27D-C316-4817-8DBC-609FB1F6CFFC}|TLEasyPlugin\\TLEasyPlugin.csproj|solutionrelative:tleasyplugin\\util\\tleutils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 8,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "TLEasyPluginControl.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.Designer.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyPluginControl.Designer.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.Designer.cs",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyPluginControl.Designer.cs",
+              "ViewState": "AgIAAHIAAAAAAAAAAAAawIEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T02:18:32.154Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "TLEasyPluginControl.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyPluginControl.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.cs",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyPluginControl.cs",
+              "ViewState": "AgIAAK0BAAAAAAAAAAAawLcBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T02:18:18.076Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TLEasyConfig.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.Designer.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyConfig.Designer.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.Designer.cs",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyConfig.Designer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-18T19:26:58.71Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "SatelliteLoader.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\SatelliteLoader.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\Util\\SatelliteLoader.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\SatelliteLoader.cs",
+              "RelativeToolTip": "TLEasyPlugin\\Util\\SatelliteLoader.cs",
+              "ViewState": "AgIAAOIAAAAAAAAAAADwvyAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T18:42:58.833Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "TLEasyPlugin.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPlugin.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyPlugin.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPlugin.cs",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyPlugin.cs",
+              "ViewState": "AgIAAH4AAAAAAAAAAADwv40AAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-24T16:00:34.779Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "TleUtils.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\TleUtils.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\Util\\TleUtils.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\TleUtils.cs",
+              "RelativeToolTip": "TLEasyPlugin\\Util\\TleUtils.cs",
+              "ViewState": "AgIAAGIAAAAAAAAAAAAswG0AAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T16:51:38.438Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TLEasyConfig.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyConfig.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.cs",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyConfig.cs",
+              "ViewState": "AgIAAG4AAAAAAAAAAAAawHgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T13:42:53.004Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "AccessReportResult.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\AccessReportResult.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\Util\\AccessReportResult.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\AccessReportResult.cs",
+              "RelativeToolTip": "TLEasyPlugin\\Util\\AccessReportResult.cs",
+              "ViewState": "AgIAAEsAAAAAAAAAAADwvzoAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T18:26:07.729Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "TLEasyPluginControl.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyPluginControl.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyPluginControl.cs [Design]",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyPluginControl.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T20:14:15.553Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "TleFileProcessor.cs",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\TleFileProcessor.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\Util\\TleFileProcessor.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\Util\\TleFileProcessor.cs",
+              "RelativeToolTip": "TLEasyPlugin\\Util\\TleFileProcessor.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T18:47:55.752Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "TLEasyConfig.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.cs",
+              "RelativeDocumentMoniker": "TLEasyPlugin\\TLEasyConfig.cs",
+              "ToolTip": "C:\\Users\\admin\\source\\repos\\TLEasyPlugin\\TLEasyPlugin\\TLEasyConfig.cs [Design]",
+              "RelativeToolTip": "TLEasyPlugin\\TLEasyConfig.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T13:38:43.098Z",
+              "EditorCaption": " [Design]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
