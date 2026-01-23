@@ -1,0 +1,2 @@
+Just run the install_plugin.bat file in this folder to install the TLEasy plugin.
+If it fails for any reason, reference the main README.md file in this repository for manual installation instructions.
