@@ -4,7 +4,7 @@
 
     <groupId>com.realmone</groupId>
     <artifactId>tleasy</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.9-SNAPSHOT</version>
 
     <packaging>jar</packaging>
 
