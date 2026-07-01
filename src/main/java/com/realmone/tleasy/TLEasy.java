@@ -775,16 +775,17 @@ public class TLEasy extends JFrame {
     }
 
     /**
-     * Checks if the STK process is currently running on Windows.
+     * Checks if the given STK executable is currently running on Windows.
+     * @param exeName the process image name to look for, e.g. "AgUiApplication.exe" or "ConnectConsole.exe".
      * @return true if the process is found, false otherwise.
      */
-    private boolean isStkRunning() {
+    private boolean isStkRunning(String exeName) {
         try {
-            Process process = Runtime.getRuntime().exec("tasklist /FI \"IMAGENAME eq " + STK_EXECUTABLE_TO_USE + "\"");
+            Process process = Runtime.getRuntime().exec("tasklist /FI \"IMAGENAME eq " + exeName + "\"");
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.contains(STK_EXECUTABLE_TO_USE)) {
+                    if (line.contains(exeName)) {
                         return true;
                     }
                 }
@@ -805,16 +806,18 @@ public class TLEasy extends JFrame {
      * @throws InterruptedException if the thread is interrupted.
      */
     private StkCon launchAndConnectToStk() throws IOException, InterruptedException {
-        // Ensure the STK process is running.
-        if (!isStkRunning()) {
-            setStatus("STK not running. Launching now...");
+        // Determine which STK executable is configured; this may be AgUiApplication.exe (the
+        // full UI) or ConnectConsole.exe (headless engine + connect socket, no UI window).
+        String primaryPath = null;
+        File exeFile = Configuration.getExeFile();
+        if (exeFile != null) {
+            primaryPath = exeFile.getAbsolutePath();
+        }
+        String exeName = (exeFile != null) ? exeFile.getName() : STK_EXECUTABLE_TO_USE;
 
-            String primaryPath = null;
-            // First try to get the primary path from configuration
-            File exeFile = Configuration.getExeFile();
-            if (exeFile != null) {
-                primaryPath = exeFile.getAbsolutePath();
-            }
+        // Ensure the STK process is running.
+        if (!isStkRunning(exeName)) {
+            setStatus("STK not running. Launching now...");
 
             String fallbackPath = "C:\\Program Files\\AGI\\STK 12\\bin\\" + STK_EXECUTABLE_TO_USE;
             String pathToUse = null;
@@ -826,18 +829,28 @@ public class TLEasy extends JFrame {
             // 2. If not found, try the fallback path
             else if (new File(fallbackPath).exists()) {
                 pathToUse = fallbackPath;
+                exeName = STK_EXECUTABLE_TO_USE;
             }
 
             // 3. If the executable was found in one of the paths, launch it
             if (pathToUse != null) {
                 setStatus("Launching STK from: " + pathToUse);
-                new ProcessBuilder(pathToUse, "/pers", "STK").start();
+                List<String> command = new ArrayList<>();
+                command.add(pathToUse);
+                // AgUiApplication.exe needs "/pers STK" to open its persistent connect socket.
+                // ConnectConsole.exe opens the connect socket on startup by default and does not
+                // recognize this argument, so only pass it when launching the full UI app.
+                if (STK_EXECUTABLE_TO_USE.equalsIgnoreCase(exeName)) {
+                    command.add("/pers");
+                    command.add("STK");
+                }
+                new ProcessBuilder(command).start();
                 // Give it a moment to create the process before we start polling.
                 Thread.sleep(3000);
             } else {
                 // 4. If neither path worked, throw a comprehensive error
                 String primaryPathForError = (primaryPath != null) ? primaryPath : "[Not Configured]";
-                throw new IOException(STK_EXECUTABLE_TO_USE + " not found. Checked primary path: " +
+                throw new IOException(exeName + " not found. Checked primary path: " +
                         primaryPathForError + " and fallback path: " + fallbackPath);
             }
         }
